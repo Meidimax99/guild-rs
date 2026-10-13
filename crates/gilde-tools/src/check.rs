@@ -24,6 +24,10 @@ fn parsers() -> Vec<(&'static str, ParseFn)> {
         ("res", |d| Ok(format!("{:#?}", res::ResFile::parse(d)?))),
         ("ed3", |d| Ok(format!("{:#?}", scene::Scene::parse(d)?))),
         ("ogr", |d| Ok(format!("{:#?}", scene::Group::parse(d)?))),
+        ("esc", |d| {
+            let src = gilde_formats::reader::decode_cp1252(d);
+            Ok(format!("{:#?}", gilde_esc::parse(&src)?))
+        }),
     ]
 }
 

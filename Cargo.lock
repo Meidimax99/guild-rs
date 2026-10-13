@@ -735,6 +735,10 @@ dependencies = [
 [[package]]
 name = "gilde-esc"
 version = "0.1.0"
+dependencies = [
+ "log",
+ "thiserror 2.0.21",
+]
 
 [[package]]
 name = "gilde-formats"
@@ -771,6 +775,7 @@ dependencies = [
  "anyhow",
  "clap",
  "env_logger",
+ "gilde-esc",
  "gilde-formats",
  "glam",
  "log",
