@@ -36,6 +36,8 @@ pub struct SubMesh {
 pub struct MeshData {
     pub name: String,
     pub vertices: Vec<Vertex>,
+    /// Source (merged BGF) vertex index of every emitted vertex, for morphing.
+    pub src_index: Vec<u32>,
     pub submeshes: Vec<SubMesh>,
     pub bounds_min: Vec3,
     pub bounds_max: Vec3,
@@ -58,12 +60,12 @@ impl MeshData {
             }
         }
 
-        let mut by_mat: Vec<(Option<u32>, Vec<Vertex>)> = Vec::new();
+        let mut by_mat: Vec<(Option<u32>, Vec<Vertex>, Vec<u32>)> = Vec::new();
         for f in &merged.faces {
-            let bucket = match by_mat.iter_mut().find(|(m, _)| *m == f.material) {
+            let bucket = match by_mat.iter_mut().find(|(m, _, _)| *m == f.material) {
                 Some(b) => b,
                 None => {
-                    by_mat.push((f.material, Vec::new()));
+                    by_mat.push((f.material, Vec::new(), Vec::new()));
                     by_mat.last_mut().unwrap()
                 }
             };
@@ -73,12 +75,15 @@ impl MeshData {
                 let n = normals[i].normalize_or_zero();
                 let uv: Vec2 = f.uvs[k];
                 bucket.1.push(Vertex { pos: p.to_array(), normal: n.to_array(), uv: uv.to_array() });
+                bucket.2.push(i as u32);
             }
         }
 
         let mut vertices = Vec::new();
+        let mut src_index = Vec::new();
         let mut submeshes = Vec::new();
-        for (mat, verts) in by_mat {
+        for (mat, verts, srcs) in by_mat {
+            src_index.extend(srcs);
             let material = mat
                 .and_then(|m| bgf.materials.get(m as usize))
                 .map(|m| MaterialInfo {
@@ -95,7 +100,7 @@ impl MeshData {
             lo = lo.min(Vec3::from(v.pos));
             hi = hi.max(Vec3::from(v.pos));
         }
-        MeshData { name: name.to_string(), vertices, submeshes, bounds_min: lo, bounds_max: hi }
+        MeshData { name: name.to_string(), vertices, src_index, submeshes, bounds_min: lo, bounds_max: hi }
     }
 }
 
@@ -142,12 +147,13 @@ pub struct Assets {
     /// Season letter used for vegetation textures: f(rühling), s(ommer), h(erbst), w(inter).
     pub season: char,
     meshes: HashMap<String, Option<Arc<MeshData>>>,
+    anims: HashMap<String, Option<Arc<crate::anim::AnimClip>>>,
     textures: HashMap<String, Option<Arc<TextureData>>>,
 }
 
 impl Assets {
     pub fn new(vfs: Arc<Vfs>) -> Self {
-        Self { vfs, season: 's', meshes: HashMap::new(), textures: HashMap::new() }
+        Self { vfs, season: 's', meshes: HashMap::new(), anims: HashMap::new(), textures: HashMap::new() }
     }
 
     /// Load `objects/*<name>.bgf` (the engine's lookup for scene LOD names).
@@ -185,6 +191,22 @@ impl Assets {
         c.push(key.to_string());
         c.push(format!("{key}_{}", self.season));
         c
+    }
+
+    /// Load a vertex animation by VFS path.
+    pub fn anim(&mut self, path: &str) -> Option<Arc<crate::anim::AnimClip>> {
+        let key = path.to_lowercase();
+        if let Some(a) = self.anims.get(&key) {
+            return a.clone();
+        }
+        let a = self
+            .vfs
+            .read(&key)
+            .ok()
+            .and_then(|d| gilde_formats::baf::Baf::parse(&d).map_err(|e| log::warn!("anim {key}: {e}")).ok())
+            .map(|b| Arc::new(crate::anim::AnimClip::from_baf(&key, &b)));
+        self.anims.insert(key, a.clone());
+        a
     }
 
     /// Load `textures/*<name>.bmp`.

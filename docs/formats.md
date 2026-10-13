@@ -126,3 +126,19 @@ character code. Parser: `gilde_formats::gfx`; all 197 banks decode.
 | `0xf90` | `char border[64]` (gfx border set) |
 
 Forms describe layout only; the game code adds buttons/lists into the windows.
+
+## Characters
+
+* Meshes: `objects/_dynamic/character/<role>_<body>.bgf` (e.g. `arbeiter_mann`),
+  with attachment dummies `d3_Head`, `d3_LeftHand`, `d3_RightHand`. Characters
+  are ~70 units tall (1 unit ≈ 2.5 cm; a terrain cell of 100 units ≈ 2.5 m).
+* Texture sets `.txs` (`FUN_004417e0`): `u32 0x23f209ae, u32 sets, u32 per_set`,
+  then `sets × per_set` NUL-terminated names. Row 0 lists the base textures;
+  further rows are variants (empty = unchanged).
+* Animations: `animations/character/<body>/<category>/<name>_<body>.baf`. Vertex
+  counts equal the merged mesh's vertex count. Unlike `.bgf`, `.baf` vertices and
+  root motion are already in engine space. Keyframe times are 3ds Max frames
+  (30 fps): the walk cycle (`gehen_mann`, frames 7–28) covers 52 units ≈ 1.3 m in
+  35 frames ≈ 1.17 s. The engine tick is 14 ms (`FUN_00427bb0(14)`).
+* Next-frame rule (`FUN_0042b7d0`): flag `0x200` reverse; at `loop_out` wrap to
+  `loop_in` unless `0x1000` (continue to the outro) or `0x100` (hold).

@@ -45,6 +45,8 @@ enum Cmd {
     GfxSheet { name: String, out: PathBuf },
     /// Print strings from the global text table by id or key.
     Text { ids: Vec<String> },
+    /// Compare a mesh's vertex count with an animation's frame size.
+    AnimInfo { mesh: String, anim: String },
     /// Export a BGF mesh to Wavefront OBJ (+MTL, textures copied as BMP).
     Obj { path: String, out_dir: PathBuf },
 }
@@ -114,6 +116,25 @@ fn main() -> Result<()> {
             for i in ids {
                 let id = i.parse::<u32>().ok().or_else(|| db.id(&i));
                 println!("{i} -> {id:?}: {:?}", id.and_then(|id| db.get(id)));
+            }
+            Ok(())
+        }
+        Cmd::AnimInfo { mesh, anim } => {
+            let m = gilde_formats::bgf::Bgf::parse(&vfs.read(&mesh)?)?;
+            let a = gilde_formats::baf::Baf::parse(&vfs.read(&anim)?)?;
+            let parts: Vec<usize> = m.objects.iter().flat_map(|o| o.parts.iter().map(|p| p.vertices.len())).collect();
+            println!("mesh parts {parts:?} total {}", parts.iter().sum::<usize>());
+            println!(
+                "anim frames {} verts/frame {:?} parts {} loop {}..{} times {:?}",
+                a.frames.len(),
+                a.frames.iter().map(|f| f.vertices.len()).collect::<std::collections::BTreeSet<_>>(),
+                a.part_count,
+                a.loop_in,
+                a.loop_out,
+                a.frames.iter().map(|f| f.time).collect::<Vec<_>>()
+            );
+            if let Some(f) = a.frames.first() {
+                println!("root {:?} {:?} dummies {:?}", f.root_position, f.root_rotation, f.dummies.iter().map(|d| &d.name).collect::<Vec<_>>());
             }
             Ok(())
         }

@@ -3,6 +3,7 @@
 //! Coordinate system matches the original Direct3D 8 engine: left-handed, Y up,
 //! units in centimetres-ish world units (a terrain cell is 100 units).
 
+pub mod anim;
 pub mod assets;
 pub mod camera;
 pub mod render;

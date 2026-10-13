@@ -37,6 +37,23 @@ struct GpuMesh {
     instance_count: u32,
 }
 
+/// An animated (morphing) mesh instance to draw this frame.
+pub struct ActorFrame<'a> {
+    pub mesh: &'a Arc<MeshData>,
+    pub clip: Option<&'a crate::anim::AnimClip>,
+    /// Clip timeline time in 30 fps frames.
+    pub time: f32,
+    pub transform: Mat4,
+}
+
+struct GpuActor {
+    vertices: wgpu::Buffer,
+    capacity: usize,
+    instance: wgpu::Buffer,
+    submeshes: Vec<GpuSubMesh>,
+    mesh: *const MeshData,
+}
+
 struct GpuTerrain {
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
@@ -57,6 +74,7 @@ pub struct Renderer {
     terrain_pipeline: wgpu::RenderPipeline,
     textures: HashMap<(String, bool), Arc<wgpu::BindGroup>>,
     meshes: Vec<GpuMesh>,
+    actors: Vec<GpuActor>,
     terrain: Option<GpuTerrain>,
     depth: Option<(wgpu::TextureView, u32, u32)>,
     pub clear_color: wgpu::Color,
@@ -257,6 +275,7 @@ impl Renderer {
             terrain_pipeline,
             textures: HashMap::new(),
             meshes: Vec::new(),
+            actors: Vec::new(),
             terrain: None,
             depth: None,
             clear_color: wgpu::Color { r: 0.55, g: 0.68, b: 0.85, a: 1.0 },
@@ -436,6 +455,68 @@ impl Renderer {
         }
     }
 
+    /// Upload this frame's animated actors (CPU morphing, `d3_anim`).
+    pub fn update_actors(&mut self, assets: &mut Assets, actors: &[ActorFrame]) {
+        self.actors.truncate(actors.len());
+        let mut pos = Vec::new();
+        for (k, a) in actors.iter().enumerate() {
+            let mesh = a.mesh;
+            let mut verts = mesh.vertices.clone();
+            if let Some(clip) = a.clip {
+                if clip.vertex_count() > 0 {
+                    clip.sample(a.time, &mut pos);
+                    for (v, &si) in verts.iter_mut().zip(&mesh.src_index) {
+                        if let Some(p) = pos.get(si as usize) {
+                            v.pos = p.to_array();
+                        }
+                    }
+                    for tri in verts.chunks_exact_mut(3) {
+                        let [p0, p1, p2] = [tri[0].pos, tri[1].pos, tri[2].pos].map(Vec3::from);
+                        let n = (p1 - p0).cross(p2 - p0).normalize_or_zero().to_array();
+                        for v in tri {
+                            v.normal = n;
+                        }
+                    }
+                }
+            }
+            let bytes: &[u8] = bytemuck::cast_slice(&verts);
+            let inst = a.transform.to_cols_array();
+            let reuse = self.actors.get(k).is_some_and(|g| g.mesh == Arc::as_ptr(mesh) && g.capacity >= verts.len());
+            if reuse {
+                let g = &self.actors[k];
+                self.queue.write_buffer(&g.vertices, 0, bytes);
+                self.queue.write_buffer(&g.instance, 0, bytemuck::cast_slice(&inst));
+                continue;
+            }
+            let vertices = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("actor"),
+                contents: bytes,
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            });
+            let instance = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("actor inst"),
+                contents: bytemuck::cast_slice(&inst),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            });
+            let submeshes = mesh
+                .submeshes
+                .iter()
+                .map(|s| GpuSubMesh {
+                    bind_group: self.texture_bind_group(assets, &s.material.texture, s.material.color_key),
+                    cutout: s.material.color_key,
+                    start: s.start,
+                    count: s.count,
+                })
+                .collect();
+            let g = GpuActor { vertices, capacity: verts.len(), instance, submeshes, mesh: Arc::as_ptr(mesh) };
+            if k < self.actors.len() {
+                self.actors[k] = g;
+            } else {
+                self.actors.push(g);
+            }
+        }
+    }
+
     fn depth_view(&mut self, w: u32, h: u32) -> wgpu::TextureView {
         if let Some((v, dw, dh)) = &self.depth {
             if (*dw, *dh) == (w, h) {
@@ -501,6 +582,14 @@ impl Renderer {
                     for s in m.submeshes.iter().filter(|s| s.cutout == cutout) {
                         pass.set_bind_group(1, &*s.bind_group, &[]);
                         pass.draw(s.start..s.start + s.count, 0..m.instance_count);
+                    }
+                }
+                for a in &self.actors {
+                    pass.set_vertex_buffer(0, a.vertices.slice(..));
+                    pass.set_vertex_buffer(1, a.instance.slice(..));
+                    for s in a.submeshes.iter().filter(|s| s.cutout == cutout) {
+                        pass.set_bind_group(1, &*s.bind_group, &[]);
+                        pass.draw(s.start..s.start + s.count, 0..1);
                     }
                 }
             }

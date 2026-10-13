@@ -38,6 +38,12 @@ pub struct Args {
     width: u32,
     #[arg(long, default_value_t = 720)]
     height: u32,
+    /// Spawn a few animated characters at the camera target (debug).
+    #[arg(long)]
+    demo_actors: bool,
+    /// Animation time in seconds for --demo-actors screenshots.
+    #[arg(long, default_value_t = 0.0)]
+    anim_time: f32,
     /// Render the main menu offscreen to this PNG and exit.
     #[arg(long)]
     menu_screenshot: Option<PathBuf>,
@@ -142,10 +148,52 @@ fn main() -> Result<()> {
         let (_adapter, device, queue) = pollster::block_on(gilde_engine::render::create_device(None, &instance))?;
         let mut r = Renderer::new(device, queue, wgpu::TextureFormat::Rgba8UnormSrgb);
         r.load_world(&l.world, &mut l.assets);
+        if args.demo_actors {
+            let center = args.look.unwrap_or(glam::Vec3::ZERO);
+            let demo = demo_actors(&mut l, center);
+            let frames: Vec<gilde_engine::render::ActorFrame> = demo
+                .iter()
+                .enumerate()
+                .map(|(i, (mesh, clip, xf))| gilde_engine::render::ActorFrame {
+                    mesh,
+                    clip: clip.as_deref(),
+                    time: clip.as_ref().map_or(0.0, |c| c.looped_time(args.anim_time + i as f32 * 0.37)),
+                    transform: *xf,
+                })
+                .collect();
+            r.update_actors(&mut l.assets, &frames);
+        }
         let px = r.render_to_rgba(args.width, args.height, &l.camera);
         image::save_buffer(out, &px, args.width, args.height, image::ExtendedColorType::Rgba8)?;
         log::info!("wrote {}", out.display());
         return Ok(());
     }
     viewer::run(args)
+}
+
+type DemoActor = (std::sync::Arc<gilde_engine::assets::MeshData>, Option<std::sync::Arc<gilde_engine::anim::AnimClip>>, glam::Mat4);
+
+/// Debug: a row of townsfolk playing their body type's walk cycle.
+pub fn demo_actors(l: &mut Loaded, center: Vec3) -> Vec<DemoActor> {
+    let people = [
+        ("arbeiter_mann", "mann"),
+        ("buergerin_frau", "frau"),
+        ("priester_kutte", "kutte"),
+        ("hellebardentraeger_soldat", "soldat"),
+        ("wirt_dicker", "dicker"),
+        ("patrizier_mann2", "mann2"),
+        ("magd_frau", "frau"),
+        ("bettler_kutte", "kutte"),
+    ];
+    let mut out = Vec::new();
+    for (i, (mesh, body)) in people.iter().enumerate() {
+        let Some(m) = l.assets.mesh(mesh) else { continue };
+        let clip = l.assets.anim(&format!("animations/character/{body}/bewegung/gehen_{body}.baf"));
+        let x = center.x + (i as f32 - people.len() as f32 / 2.0) * 40.0;
+        let z = center.z;
+        let y = l.world.terrain.as_ref().and_then(|t| t.height_at(x, z)).unwrap_or(center.y);
+        let xf = glam::Mat4::from_translation(Vec3::new(x, y, z)) * glam::Mat4::from_rotation_y(i as f32 * 0.6);
+        out.push((m, clip, xf));
+    }
+    out
 }
