@@ -52,7 +52,14 @@ pub struct Loaded {
 pub fn load(args: &Args) -> Result<Loaded> {
     let vfs = Arc::new(Vfs::open_game_dir(&args.game)?);
     let mut assets = Assets::new(vfs.clone());
-    let scene = Scene::parse(&vfs.read(&args.scene).with_context(|| format!("reading {}", args.scene))?)?;
+    let data = vfs.read(&args.scene).with_context(|| format!("reading {}", args.scene))?;
+    let scene = if args.scene.to_lowercase().ends_with(".cty") {
+        let w = gilde_formats::world::WorldFile::parse(&data)?;
+        log::info!("city {:?}: {} buildings, {} characters", w.header.name, w.buildings.len(), w.characters.list.len());
+        w.scene.context("city file without scene")?
+    } else {
+        Scene::parse(&data)?
+    };
     let world = World::from_scene(&scene, &mut assets);
     log::info!("{} instances, {} markers", world.instances.len(), world.markers.len());
 

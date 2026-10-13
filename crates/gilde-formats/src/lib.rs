@@ -11,5 +11,6 @@ pub mod reader;
 pub mod res;
 pub mod scene;
 pub mod vfs;
+pub mod world;
 
 pub use error::{Error, Result};
