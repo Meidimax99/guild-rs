@@ -83,3 +83,46 @@ plus an `n×n` texture-layer index map and 8 layer texture names. Vertex
 `(i, j)` = `origin + (i·cell, h·hscale, −j·cell)` with `cell = 100`,
 `hscale = 5` (stored as f32 bits in `params`) and `origin` from the trailing
 vec3 — verified against the building heights in all cities.
+
+## `.cty` city / world state (`FUN_0050abf0`)
+
+Version `0x10026`–`0x1005a` (cities: `0x10056`). Sections in order: header
+(`FUN_0050b180`, incl. a 160×120 thumbnail), globals, object instances
+(`FUN_0050b660`), building instances (`FUN_0050b7e0`, with per-type extras for
+forests, graveyards and `K`/`L`/`M` residences), 16 dynasties (`FUN_0050bd90`),
+characters (`FUN_0050c100`), 5 markets × N wares and 4 city-info records
+(`FUN_0050d310`), offices (`FUN_004d8970`). City files (header flag `& 2`) then
+contain a complete `.ed3` scene of the city (`FUN_0050b570` → `FUN_0043fae0` on
+the same stream); savegames continue with the dynamic simulation state.
+Parser: `gilde_formats::world`; all 7 shipped cities parse to the last byte.
+
+## `.gfx` 2D graphics (`FUN_004635e0`)
+
+Directory of 0x54-byte entries (name, offset, size, format, flags) followed by
+`SHAPBANK` sprite banks: run-length encoded RGB rows with soft (alpha 0xc0) run
+edges. `"NAME+N"` aliases frame N of bank `"NAME"`. Fonts are banks indexed by
+character code. Parser: `gilde_formats::gfx`; all 197 banks decode.
+
+## `.form` UI layouts (`FUN_00463d60`)
+
+`"FRM2"`, `u32 count`, `count × 0x101c`-byte window records:
+
+| Offset | Field |
+|---|---|
+| `0x000` | `i16 x, y, w, h` (800×600 reference) |
+| `0x008` | `u32 style` (bit 2: draw border set at `0xf90`) |
+| `0x00c` / `0x06c` | `i16 ctrl_x[48]`, `i16 ctrl_y[48]` |
+| `0x0cc` | `i16 ctrl_count` |
+| `0x0d0` | `i32 ctrl_type[48]` (`<0x40` image, `0x40` child-window slot, `0x41` button, `0x43` text, `0x45` slider/edit) |
+| `0x190` | `char ctrl_name[48][64]` (gfx sprite / text key) |
+| `0xd90` | `u8 ctrl_param[48][4]` |
+| `0xe50` | `char title_key[64]` (text table key) |
+| `0xe90` | `char font[64]` (gfx font, default `_FONT`) |
+| `0xed0` | `i32 parent` (1-based window index, 0 = top level) |
+| `0xed4` | `char image[64]` (gfx background sprite) |
+| `0xf14` | `i16 margins[4]` |
+| `0xf4c` | `char texture[64]` (3D texture background, e.g. parchment) |
+| `0xf8c` | `f32 alpha` |
+| `0xf90` | `char border[64]` (gfx border set) |
+
+Forms describe layout only; the game code adds buttons/lists into the windows.

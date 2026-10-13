@@ -778,6 +778,7 @@ dependencies = [
  "gilde-esc",
  "gilde-formats",
  "glam",
+ "image",
  "log",
 ]
 

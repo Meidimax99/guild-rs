@@ -37,6 +37,10 @@ enum Cmd {
     Dump { path: String },
     /// Print the object tree of an .ed3 scene or .ogr group.
     Tree { path: String },
+    /// Decode every SHAPBANK in the .gfx archive and report failures.
+    GfxCheck,
+    /// Export a .gfx sprite (e.g. "_MENUE_BACKGROUND" or "_FONT+1") to PNG.
+    GfxPng { name: String, out: PathBuf },
     /// Export a BGF mesh to Wavefront OBJ (+MTL, textures copied as BMP).
     Obj { path: String, out_dir: PathBuf },
 }
@@ -65,7 +69,37 @@ fn main() -> Result<()> {
             Ok(())
         }
         Cmd::Dump { path } => check::dump(&vfs, &path),
+        Cmd::GfxCheck => {
+            let gfx = open_gfx(&game)?;
+            let (mut ok, mut bad) = (0, 0);
+            for e in gfx.entries.iter().filter(|e| e.size > 0) {
+                match gfx.raw(e).map_err(anyhow::Error::from).and_then(|b| Ok(gilde_formats::gfx::ShapBank::parse(&b)?)) {
+                    Ok(_) => ok += 1,
+                    Err(err) => {
+                        bad += 1;
+                        println!("{}: {err}", e.name);
+                    }
+                }
+            }
+            println!("gfx: {ok}/{} banks ok", ok + bad);
+            Ok(())
+        }
+        Cmd::GfxPng { name, out } => {
+            let s = open_gfx(&game)?.sprite(&name)?;
+            image::save_buffer(&out, &s.rgba, s.width, s.height, image::ExtendedColorType::Rgba8)?;
+            Ok(())
+        }
         Cmd::Tree { path } => check::tree(&vfs, &path),
         Cmd::Obj { path, out_dir } => export::obj(&vfs, &path, &out_dir),
     }
+}
+
+fn open_gfx(game: &std::path::Path) -> Result<gilde_formats::gfx::GfxArchive> {
+    let dir = gilde_formats::vfs::find_ci(game, "gfx").context("gfx directory not found")?;
+    let file = std::fs::read_dir(&dir)?
+        .flatten()
+        .map(|e| e.path())
+        .find(|p| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("gfx")))
+        .context("no .gfx archive")?;
+    Ok(gilde_formats::gfx::GfxArchive::open(file)?)
 }

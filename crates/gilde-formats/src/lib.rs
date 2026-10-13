@@ -7,6 +7,7 @@
 pub mod baf;
 pub mod bgf;
 pub mod error;
+pub mod gfx;
 pub mod reader;
 pub mod res;
 pub mod scene;
