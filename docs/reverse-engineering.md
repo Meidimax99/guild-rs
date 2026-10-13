@@ -9,6 +9,20 @@ Status legend: **done** (understood and implemented in Rust, verified against
 shipped data), **mapped** (understood well enough to describe, not yet ported),
 **located** (entry points known, internals not analysed), **open** (not started).
 
+## Decompiled source
+
+The complete decompiled C (Ghidra output, all ~4800 functions, with every name
+from `re/names.tsv` applied) is generated locally and deliberately **not
+committed**, because it is derived from the copyrighted executable:
+
+```sh
+re/decompile.sh "/path/to/The Guild Gold (German)/GildeGold_TL.exe"   # → ../re-out/src/
+```
+
+`../re-out/src/` then holds one file per module of the address map below
+(`d3_engine.c`, `d2_ui.c`, `game_logic.c`, …) and `index.tsv` (address, name,
+module). Re-run the script after adding names to see them throughout.
+
 ## Method and tooling
 
 * **Static analysis** with Ghidra 12.1 (headless) and the REA MCP tools. No

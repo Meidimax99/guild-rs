@@ -126,11 +126,13 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 | `ghidra_scripts/ExportAll.java` | decompile all functions, dump strings with xrefs |
 | `ghidra_scripts/DecompileAt.java` | create + decompile functions at given addresses |
 | `ghidra_scripts/ApplyNames.java` | apply `names.tsv` to the Ghidra project |
+| `decompile.sh` | reproduce the full decompiled source outside the repo (import, apply names, export, split by module) |
 | `names.tsv` | identified functions and globals (address, name, comment) |
 | `scripts/pe.py` | minimal PE reader (virtual address → bytes) |
 | `scripts/bgf_grammar.py` | dump the BGF chunk grammar tables |
 | `scripts/esc_api.py` | extract script host-function registrations |
 | `scripts/gfx_dump.py` | reference SHAPBANK → PNG decoder |
+| `scripts/split_decomp.py` | split `decomp.c` into per-module files + `index.tsv` |
 
 ## Outside the repository
 
@@ -141,7 +143,7 @@ committed (they contain copyrighted game data or derived code):
 |---|---|
 | `../The Guild Gold (German)/` | the game installation (auto-detected) |
 | `../unpacked/` | extracted `.bin` archives for manual inspection |
-| `../re-out/` | headless Ghidra project, `decomp.c`, `functions.tsv`, `strings.tsv`, helper scripts `bin/fn` (print a function), `bin/dec` (decompile at addresses), `bin/reexport` (apply names + re-export) |
+| `../re-out/` | headless Ghidra project, `src/` (decompiled source split by module, see below), `decomp.c`, `functions.tsv`, `strings.tsv`, helper scripts `bin/fn` (print a function), `bin/dec` (decompile at addresses), `bin/reexport` (apply names + re-export) |
 
 ## Conventions
 
