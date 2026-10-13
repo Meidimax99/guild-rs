@@ -7,10 +7,12 @@
 pub mod baf;
 pub mod bgf;
 pub mod error;
+pub mod form;
 pub mod gfx;
 pub mod reader;
 pub mod res;
 pub mod scene;
+pub mod text;
 pub mod vfs;
 pub mod world;
 

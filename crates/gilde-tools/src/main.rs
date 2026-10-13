@@ -41,6 +41,10 @@ enum Cmd {
     GfxCheck,
     /// Export a .gfx sprite (e.g. "_MENUE_BACKGROUND" or "_FONT+1") to PNG.
     GfxPng { name: String, out: PathBuf },
+    /// Export all frames of a .gfx bank side by side to one PNG.
+    GfxSheet { name: String, out: PathBuf },
+    /// Print strings from the global text table by id or key.
+    Text { ids: Vec<String> },
     /// Export a BGF mesh to Wavefront OBJ (+MTL, textures copied as BMP).
     Obj { path: String, out_dir: PathBuf },
 }
@@ -87,6 +91,30 @@ fn main() -> Result<()> {
         Cmd::GfxPng { name, out } => {
             let s = open_gfx(&game)?.sprite(&name)?;
             image::save_buffer(&out, &s.rgba, s.width, s.height, image::ExtendedColorType::Rgba8)?;
+            Ok(())
+        }
+        Cmd::GfxSheet { name, out } => {
+            let bank = open_gfx(&game)?.bank(&name)?;
+            let w: u32 = bank.frames.iter().map(|f| f.width + 2).sum::<u32>().max(1);
+            let h = bank.frames.iter().map(|f| f.height).max().unwrap_or(1).max(1);
+            let mut img = image::RgbaImage::from_pixel(w, h, image::Rgba([40, 40, 80, 255]));
+            let mut x = 0;
+            for f in &bank.frames {
+                let fi = image::RgbaImage::from_raw(f.width, f.height, f.rgba.clone()).unwrap();
+                image::imageops::overlay(&mut img, &fi, x as i64, 0);
+                x += f.width + 2;
+            }
+            println!("{} frames: {:?}", bank.frames.len(), bank.frames.iter().map(|f| (f.width, f.height)).collect::<Vec<_>>());
+            img.save(&out)?;
+            Ok(())
+        }
+        Cmd::Text { ids } => {
+            let db = gilde_formats::text::TextDb::load(&vfs, "german")?;
+            println!("{} strings", db.len());
+            for i in ids {
+                let id = i.parse::<u32>().ok().or_else(|| db.id(&i));
+                println!("{i} -> {id:?}: {:?}", id.and_then(|id| db.get(id)));
+            }
             Ok(())
         }
         Cmd::Tree { path } => check::tree(&vfs, &path),
