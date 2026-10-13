@@ -69,3 +69,41 @@ pub fn dump(vfs: &Vfs, path: &str) -> Result<()> {
     }
     Ok(())
 }
+
+pub fn tree(vfs: &Vfs, path: &str) -> Result<()> {
+    fn print(o: &scene::SceneObject, depth: usize) {
+        let lod = o.lods.first().map(|l| format!(" lod={l}")).unwrap_or_default();
+        let props: Vec<String> = o.properties.iter().map(|(k, v)| format!("{k}={v}")).collect();
+        println!(
+            "{:indent$}{:?} {:?} pos={:.1?} rot={:.2?}{lod} {}",
+            "",
+            o.kind,
+            o.name,
+            o.position.to_array(),
+            o.rotation.to_array(),
+            props.join(" "),
+            indent = depth * 2
+        );
+        for c in &o.children {
+            print(c, depth + 1);
+        }
+    }
+    let data = vfs.read(path)?;
+    let objects = if path.to_lowercase().ends_with(".ogr") {
+        scene::Group::parse(&data)?.objects
+    } else {
+        let s = scene::Scene::parse(&data)?;
+        println!("version {:#x} camera {:?} ambient {:?} props {:?}", s.version, s.camera, s.ambient, s.properties);
+        if let Some(f) = &s.floor {
+            println!(
+                "floor {:?} stride {} heights {}B heights2 {}B water {} name2 {:?} textures {:?} params {:?} offset {:?}",
+                f.name, f.stride, f.heights.len(), f.heights2.len(), f.water.len(), f.name2, f.textures, f.params, f.offset
+            );
+        }
+        s.objects
+    };
+    for o in &objects {
+        print(o, 0);
+    }
+    Ok(())
+}

@@ -35,6 +35,8 @@ enum Cmd {
     Cat { path: String, out: Option<PathBuf> },
     /// Dump a parsed file in debug form.
     Dump { path: String },
+    /// Print the object tree of an .ed3 scene or .ogr group.
+    Tree { path: String },
     /// Export a BGF mesh to Wavefront OBJ (+MTL, textures copied as BMP).
     Obj { path: String, out_dir: PathBuf },
 }
@@ -63,6 +65,7 @@ fn main() -> Result<()> {
             Ok(())
         }
         Cmd::Dump { path } => check::dump(&vfs, &path),
+        Cmd::Tree { path } => check::tree(&vfs, &path),
         Cmd::Obj { path, out_dir } => export::obj(&vfs, &path, &out_dir),
     }
 }

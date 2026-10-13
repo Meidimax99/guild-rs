@@ -1,0 +1,18 @@
+[package]
+name = "gilde-game"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+env_logger.workspace = true
+gilde-engine = { version = "0.1.0", path = "../gilde-engine" }
+gilde-formats = { version = "0.1.0", path = "../gilde-formats" }
+glam.workspace = true
+image = { version = "0.25.10", default-features = false, features = ["png"] }
+log.workspace = true
+pollster = "1.0.1"
+wgpu = "24"
+winit = "0.30"

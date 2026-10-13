@@ -1,0 +1,16 @@
+[package]
+name = "gilde-engine"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+bytemuck = { version = "1.25.2", features = ["derive"] }
+gilde-formats = { version = "0.1.0", path = "../gilde-formats" }
+glam = { workspace = true, features = ["bytemuck"] }
+image = { version = "0.25.10", default-features = false, features = ["bmp", "png"] }
+log.workspace = true
+pollster = "1.0.1"
+wgpu = "24"
+winit = "0.30"
