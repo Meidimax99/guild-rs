@@ -177,3 +177,23 @@ pub fn find_ci(dir: &Path, name: &str) -> Option<PathBuf> {
         .find(|e| e.file_name().to_string_lossy().eq_ignore_ascii_case(name))
         .map(|e| e.path())
 }
+
+/// Locate a game installation when none is given: the current directory, its
+/// ancestors, and their immediate subdirectories are searched for a folder that
+/// contains `Resources/scripts.bin`.
+pub fn find_game_dir() -> Option<PathBuf> {
+    let is_game = |d: &Path| find_ci(d, "resources").is_some_and(|r| find_ci(&r, "scripts.bin").is_some());
+    let cwd = std::env::current_dir().ok()?;
+    for dir in cwd.ancestors() {
+        if is_game(dir) {
+            return Some(dir.to_path_buf());
+        }
+        let mut subs: Vec<PathBuf> =
+            std::fs::read_dir(dir).ok()?.flatten().map(|e| e.path()).filter(|p| p.is_dir()).collect();
+        subs.sort();
+        if let Some(p) = subs.into_iter().find(|p| is_game(p)) {
+            return Some(p);
+        }
+    }
+    None
+}

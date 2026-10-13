@@ -15,8 +15,9 @@ mod viewer;
 #[derive(Parser, Clone)]
 #[command(name = "gilde-game")]
 pub struct Args {
-    /// Game installation directory (contains Resources/). Defaults to $GILDE_DIR.
-    #[arg(long, env = "GILDE_DIR")]
+    /// Game installation directory (contains Resources/). Defaults to $GILDE_DIR,
+    /// then a search of the current directory, its parents and their subfolders.
+    #[arg(long, env = "GILDE_DIR", default_value_os_t = default_game_dir())]
     game: PathBuf,
     /// Scene or city to open directly, skipping the menu (VFS path, e.g.
     /// "scenes/*stadt_augsburg.ed3" or "resources/gamedata/cities/koeln.cty").
@@ -53,6 +54,10 @@ pub struct Args {
     /// Render the main menu offscreen to this PNG and exit.
     #[arg(long)]
     menu_screenshot: Option<PathBuf>,
+}
+
+fn default_game_dir() -> PathBuf {
+    gilde_formats::vfs::find_game_dir().unwrap_or_else(|| PathBuf::from("."))
 }
 
 fn parse_vec3(s: &str) -> Result<Vec3, String> {

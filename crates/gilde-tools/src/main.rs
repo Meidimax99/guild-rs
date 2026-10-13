@@ -54,7 +54,7 @@ enum Cmd {
 fn main() -> Result<()> {
     env_logger::init();
     let cli = Cli::parse();
-    let game = cli.game.context("pass --game <dir> or set GILDE_DIR")?;
+    let game = cli.game.or_else(gilde_formats::vfs::find_game_dir).context("game directory not found: pass --game <dir> or set GILDE_DIR")?;
     let vfs = Vfs::open_game_dir(&game)?;
     match cli.cmd {
         Cmd::Check { ext, verbose } => check::run(&vfs, ext.as_deref(), verbose),

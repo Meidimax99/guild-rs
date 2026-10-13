@@ -38,8 +38,11 @@ re/               Ghidra scripts and helpers used for the analysis
 
 ## Usage
 
+The game directory is found automatically if it sits in the current directory,
+one of its parents, or a sibling folder; otherwise pass `--game <dir>` or set
+`GILDE_DIR` (fish: `set -x GILDE_DIR "/path/to/The Guild Gold (German)"`).
+
 ```sh
-export GILDE_DIR="/path/to/The Guild Gold (German)"
 
 cargo run --release --bin gilde -- check          # parse every shipped file
 cargo run --release --bin gilde -- tree 'scenes/*stadt_augsburg.ed3'
