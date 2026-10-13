@@ -1,6 +1,6 @@
 use anyhow::{Result, bail};
 use gilde_formats::vfs::Vfs;
-use gilde_formats::{baf, bgf, res};
+use gilde_formats::{baf, bgf, res, scene};
 use std::collections::BTreeMap;
 
 type ParseFn = fn(&[u8]) -> Result<String>;
@@ -22,6 +22,8 @@ fn parsers() -> Vec<(&'static str, ParseFn)> {
             Ok(format!("{b:#?}"))
         }),
         ("res", |d| Ok(format!("{:#?}", res::ResFile::parse(d)?))),
+        ("ed3", |d| Ok(format!("{:#?}", scene::Scene::parse(d)?))),
+        ("ogr", |d| Ok(format!("{:#?}", scene::Group::parse(d)?))),
     ]
 }
 

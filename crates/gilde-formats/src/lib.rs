@@ -9,6 +9,7 @@ pub mod bgf;
 pub mod error;
 pub mod reader;
 pub mod res;
+pub mod scene;
 pub mod vfs;
 
 pub use error::{Error, Result};
