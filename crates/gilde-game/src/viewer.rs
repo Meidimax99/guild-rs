@@ -1,10 +1,15 @@
-//! Interactive free-camera viewer.
+//! Windowed application: main menu → city view.
 //!
-//! WASD/QE move, right mouse drag looks around, shift = fast, scroll = speed.
+//! City view controls: WASD/QE move, right mouse drag looks around, shift =
+//! fast, scroll = speed, Escape returns to the menu.
 
-use crate::{Args, load};
+use crate::menu::{MainMenu, MenuAction};
+use crate::{Args, Loaded, load};
 use anyhow::Result;
 use gilde_engine::Renderer;
+use gilde_engine::ui::{UiRenderer, to_ui};
+use gilde_formats::vfs::Vfs;
+use gilde_ui::{DrawList, Event, UiAssets};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Instant;
@@ -19,16 +24,47 @@ struct Gfx {
     surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
     renderer: Renderer,
+    ui: UiRenderer,
+}
+
+enum Mode {
+    Menu(MainMenu),
+    City(Loaded),
 }
 
 struct App {
     args: Args,
-    loaded: Option<crate::Loaded>,
+    vfs: Arc<Vfs>,
+    assets: UiAssets,
+    mode: Mode,
+    pending_city: bool,
     gfx: Option<Gfx>,
     keys: HashSet<KeyCode>,
     looking: bool,
+    mouse: (f32, f32),
     speed: f32,
     last: Instant,
+}
+
+impl App {
+    fn enter_city(&mut self) {
+        match load(&self.args) {
+            Ok(mut l) => {
+                if let Some(g) = self.gfx.as_mut() {
+                    g.renderer.load_world(&l.world, &mut l.assets);
+                }
+                self.mode = Mode::City(l);
+            }
+            Err(e) => log::error!("loading city: {e:#}"),
+        }
+    }
+
+    fn back_to_menu(&mut self) {
+        match MainMenu::new(&self.vfs, &self.assets) {
+            Ok(m) => self.mode = Mode::Menu(m),
+            Err(e) => log::error!("menu: {e:#}"),
+        }
+    }
 }
 
 impl ApplicationHandler for App {
@@ -62,18 +98,24 @@ impl ApplicationHandler for App {
             desired_maximum_frame_latency: 2,
         };
         surface.configure(&device, &config);
-        let mut renderer = Renderer::new(device, queue, format);
-        let l = self.loaded.as_mut().unwrap();
-        renderer.load_world(&l.world, &mut l.assets);
-        self.gfx = Some(Gfx { window, surface, config, renderer });
+        let ui = UiRenderer::new(&device, format);
+        let renderer = Renderer::new(device, queue, format);
+        self.gfx = Some(Gfx { window, surface, config, renderer, ui });
+        if self.pending_city {
+            self.pending_city = false;
+            self.enter_city();
+        }
         self.last = Instant::now();
     }
 
     fn window_event(&mut self, el: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
-        let Some(gfx) = self.gfx.as_mut() else { return };
+        if self.gfx.is_none() {
+            return;
+        }
         match event {
             WindowEvent::CloseRequested => el.exit(),
             WindowEvent::Resized(s) => {
+                let gfx = self.gfx.as_mut().unwrap();
                 gfx.config.width = s.width.max(1);
                 gfx.config.height = s.height.max(1);
                 gfx.surface.configure(&gfx.renderer.device, &gfx.config);
@@ -82,7 +124,10 @@ impl ApplicationHandler for App {
                 if let PhysicalKey::Code(k) = event.physical_key {
                     if event.state == ElementState::Pressed {
                         if k == KeyCode::Escape {
-                            el.exit();
+                            match self.mode {
+                                Mode::City(_) => self.back_to_menu(),
+                                Mode::Menu(_) => el.exit(),
+                            }
                         }
                         self.keys.insert(k);
                     } else {
@@ -90,9 +135,34 @@ impl ApplicationHandler for App {
                     }
                 }
             }
-            WindowEvent::MouseInput { button: MouseButton::Right, state, .. } => {
-                self.looking = state == ElementState::Pressed;
+            WindowEvent::CursorMoved { position, .. } => {
+                let g = self.gfx.as_ref().unwrap();
+                self.mouse = to_ui(g.config.width, g.config.height, position.x as f32, position.y as f32);
+                if let Mode::Menu(m) = &mut self.mode {
+                    m.screen.mouse(&self.assets, self.mouse.0, self.mouse.1, false, false);
+                }
             }
+            WindowEvent::MouseInput { button, state, .. } => match &mut self.mode {
+                Mode::Menu(m) if button == MouseButton::Left => {
+                    let ev = m.screen.mouse(
+                        &self.assets,
+                        self.mouse.0,
+                        self.mouse.1,
+                        state == ElementState::Pressed,
+                        state == ElementState::Released,
+                    );
+                    if let Some(Event::Clicked(id)) = ev {
+                        match m.action(id) {
+                            Some(MenuAction::NewGame) => self.enter_city(),
+                            Some(MenuAction::Quit) => el.exit(),
+                            Some(a) => log::info!("menu action {a:?} not implemented yet"),
+                            None => {}
+                        }
+                    }
+                }
+                Mode::City(_) if button == MouseButton::Right => self.looking = state == ElementState::Pressed,
+                _ => {}
+            },
             WindowEvent::MouseWheel { delta, .. } => {
                 let d = match delta {
                     MouseScrollDelta::LineDelta(_, y) => y,
@@ -104,31 +174,56 @@ impl ApplicationHandler for App {
                 let now = Instant::now();
                 let dt = (now - self.last).as_secs_f32().min(0.1);
                 self.last = now;
-                let cam = &mut self.loaded.as_mut().unwrap().camera;
-                let fast = if self.keys.contains(&KeyCode::ShiftLeft) { 4.0 } else { 1.0 };
-                let step = self.speed * fast * dt;
-                let (f, r) = (cam.forward(), cam.right());
-                for (k, d) in [
-                    (KeyCode::KeyW, f),
-                    (KeyCode::KeyS, -f),
-                    (KeyCode::KeyD, r),
-                    (KeyCode::KeyA, -r),
-                    (KeyCode::KeyE, glam::Vec3::Y),
-                    (KeyCode::KeyQ, -glam::Vec3::Y),
-                ] {
-                    if self.keys.contains(&k) {
-                        cam.position += d * step;
+                let gfx = self.gfx.as_mut().unwrap();
+                let frame = match gfx.surface.get_current_texture() {
+                    Ok(f) => f,
+                    Err(_) => {
+                        gfx.surface.configure(&gfx.renderer.device, &gfx.config);
+                        return;
+                    }
+                };
+                let view = frame.texture.create_view(&Default::default());
+                let (w, h) = (gfx.config.width, gfx.config.height);
+                match &mut self.mode {
+                    Mode::City(l) => {
+                        let cam = &mut l.camera;
+                        let fast = if self.keys.contains(&KeyCode::ShiftLeft) { 4.0 } else { 1.0 };
+                        let step = self.speed * fast * dt;
+                        let (f, r) = (cam.forward(), cam.right());
+                        for (k, d) in [
+                            (KeyCode::KeyW, f),
+                            (KeyCode::KeyS, -f),
+                            (KeyCode::KeyD, r),
+                            (KeyCode::KeyA, -r),
+                            (KeyCode::KeyE, glam::Vec3::Y),
+                            (KeyCode::KeyQ, -glam::Vec3::Y),
+                        ] {
+                            if self.keys.contains(&k) {
+                                cam.position += d * step;
+                            }
+                        }
+                        let cam = *cam;
+                        gfx.renderer.render(&view, w, h, &cam);
+                    }
+                    Mode::Menu(m) => {
+                        let mut enc = gfx.renderer.device.create_command_encoder(&Default::default());
+                        enc.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            label: Some("clear"),
+                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                view: &view,
+                                resolve_target: None,
+                                ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Store },
+                            })],
+                            ..Default::default()
+                        });
+                        gfx.renderer.queue.submit([enc.finish()]);
+                        let mut list = DrawList::default();
+                        m.screen.draw(&self.assets, &mut list);
+                        let (d, q) = (gfx.renderer.device.clone(), gfx.renderer.queue.clone());
+                        gfx.ui.render(&d, &q, &view, w, h, &self.assets, &list);
                     }
                 }
-                let cam = *cam;
-                match gfx.surface.get_current_texture() {
-                    Ok(frame) => {
-                        let view = frame.texture.create_view(&Default::default());
-                        gfx.renderer.render(&view, gfx.config.width, gfx.config.height, &cam);
-                        frame.present();
-                    }
-                    Err(_) => gfx.surface.configure(&gfx.renderer.device, &gfx.config),
-                }
+                frame.present();
                 gfx.window.request_redraw();
             }
             _ => {}
@@ -136,20 +231,34 @@ impl ApplicationHandler for App {
     }
 
     fn device_event(&mut self, _el: &ActiveEventLoop, _id: winit::event::DeviceId, event: DeviceEvent) {
-        if let DeviceEvent::MouseMotion { delta } = event {
+        if let (DeviceEvent::MouseMotion { delta }, Mode::City(l)) = (event, &mut self.mode) {
             if self.looking {
-                let cam = &mut self.loaded.as_mut().unwrap().camera;
-                cam.yaw += delta.0 as f32 * 0.004;
-                cam.pitch = (cam.pitch + delta.1 as f32 * 0.004).clamp(-1.5, 1.5);
+                l.camera.yaw += delta.0 as f32 * 0.004;
+                l.camera.pitch = (l.camera.pitch + delta.1 as f32 * 0.004).clamp(-1.5, 1.5);
             }
         }
     }
 }
 
 pub fn run(args: Args) -> Result<()> {
-    let loaded = load(&args)?;
+    let vfs = Arc::new(Vfs::open_game_dir(&args.game)?);
+    let assets = crate::open_ui_assets(&args.game, &vfs)?;
+    let menu = MainMenu::new(&vfs, &assets)?;
+    let pending_city = args.scene.is_some();
     let el = EventLoop::new()?;
-    let mut app = App { args, loaded: Some(loaded), gfx: None, keys: HashSet::new(), looking: false, speed: 1500.0, last: Instant::now() };
+    let mut app = App {
+        args,
+        vfs,
+        assets,
+        mode: Mode::Menu(menu),
+        pending_city,
+        gfx: None,
+        keys: HashSet::new(),
+        looking: false,
+        mouse: (0.0, 0.0),
+        speed: 1500.0,
+        last: Instant::now(),
+    };
     el.run_app(&mut app)?;
     Ok(())
 }

@@ -8,6 +8,7 @@ version.workspace = true
 anyhow.workspace = true
 bytemuck = { version = "1.25.2", features = ["derive"] }
 gilde-formats = { version = "0.1.0", path = "../gilde-formats" }
+gilde-ui = { version = "0.1.0", path = "../gilde-ui" }
 glam = { workspace = true, features = ["bytemuck"] }
 image = { version = "0.25.10", default-features = false, features = ["bmp", "png"] }
 log.workspace = true

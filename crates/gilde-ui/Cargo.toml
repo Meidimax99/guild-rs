@@ -1,0 +1,9 @@
+[package]
+name = "gilde-ui"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+gilde-formats = { version = "0.1.0", path = "../gilde-formats" }
+log.workspace = true

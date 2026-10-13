@@ -724,6 +724,7 @@ dependencies = [
  "anyhow",
  "bytemuck",
  "gilde-formats",
+ "gilde-ui",
  "glam",
  "image",
  "log",
@@ -760,6 +761,7 @@ dependencies = [
  "env_logger",
  "gilde-engine",
  "gilde-formats",
+ "gilde-ui",
  "glam",
  "image",
  "log",
@@ -779,6 +781,14 @@ dependencies = [
  "gilde-formats",
  "glam",
  "image",
+ "log",
+]
+
+[[package]]
+name = "gilde-ui"
+version = "0.1.0"
+dependencies = [
+ "gilde-formats",
  "log",
 ]
 

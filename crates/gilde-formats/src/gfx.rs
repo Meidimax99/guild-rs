@@ -57,6 +57,10 @@ pub struct GfxArchive {
 pub struct Sprite {
     pub width: u32,
     pub height: u32,
+    /// Ink bounding box from the frame header (`+0x16 x0, +0x18 y0, +0x1a x1,
+    /// +0x1c y1`, inclusive). The text renderer kerns by `x0` and advances by
+    /// `x1 + spacing` (shape fields `+0x11`/`+0x15` in `FUN_0045f3a0`).
+    pub ink: [i16; 4],
     pub rgba: Vec<u8>,
 }
 
@@ -159,8 +163,9 @@ pub fn decode_frame(bank: &[u8], idx: usize) -> Result<Sprite> {
     let w = rd16(bank, f + 6)? as u32;
     let h = rd16(bank, f + 10)? as u32;
     let mut rgba = vec![0u8; (w * h * 4) as usize];
+    let ink = [0x16, 0x18, 0x1a, 0x1c].map(|o| rd16(bank, f + o).unwrap_or(0) as i16);
     if rd32(bank, f + 0x26)? as i32 == -1 {
-        return Ok(Sprite { width: w, height: h, rgba });
+        return Ok(Sprite { width: w, height: h, ink, rgba });
     }
     let mut p = f + 0x32;
     for y in 0..h {
@@ -185,7 +190,7 @@ pub fn decode_frame(bank: &[u8], idx: usize) -> Result<Sprite> {
             p += n as usize * 3;
         }
     }
-    Ok(Sprite { width: w, height: h, rgba })
+    Ok(Sprite { width: w, height: h, ink, rgba })
 }
 
 impl ShapBank {

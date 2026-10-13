@@ -9,17 +9,22 @@ use glam::Vec3;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+mod menu;
 mod viewer;
 
-#[derive(Parser)]
+#[derive(Parser, Clone)]
 #[command(name = "gilde-game")]
 pub struct Args {
     /// Game installation directory (contains Resources/). Defaults to $GILDE_DIR.
     #[arg(long, env = "GILDE_DIR")]
     game: PathBuf,
-    /// Scene to load (VFS path, e.g. "scenes/*stadt_augsburg.ed3").
-    #[arg(long, default_value = "scenes/*stadt_augsburg.ed3")]
-    scene: String,
+    /// Scene or city to open directly, skipping the menu (VFS path, e.g.
+    /// "scenes/*stadt_augsburg.ed3" or "resources/gamedata/cities/koeln.cty").
+    #[arg(long)]
+    scene: Option<String>,
+    /// City for "Neues Spiel" (game.ini `Stadt`).
+    #[arg(long, default_value = "Augsburg")]
+    city: String,
     /// Render one frame offscreen to this PNG and exit.
     #[arg(long)]
     screenshot: Option<PathBuf>,
@@ -33,6 +38,9 @@ pub struct Args {
     width: u32,
     #[arg(long, default_value_t = 720)]
     height: u32,
+    /// Render the main menu offscreen to this PNG and exit.
+    #[arg(long)]
+    menu_screenshot: Option<PathBuf>,
 }
 
 fn parse_vec3(s: &str) -> Result<Vec3, String> {
@@ -49,11 +57,18 @@ pub struct Loaded {
     pub camera: Camera,
 }
 
+impl Args {
+    pub fn scene_path(&self) -> String {
+        self.scene.clone().unwrap_or_else(|| format!("resources/gamedata/cities/{}.cty", self.city.to_lowercase()))
+    }
+}
+
 pub fn load(args: &Args) -> Result<Loaded> {
     let vfs = Arc::new(Vfs::open_game_dir(&args.game)?);
     let mut assets = Assets::new(vfs.clone());
-    let data = vfs.read(&args.scene).with_context(|| format!("reading {}", args.scene))?;
-    let scene = if args.scene.to_lowercase().ends_with(".cty") {
+    let path = args.scene_path();
+    let data = vfs.read(&path).with_context(|| format!("reading {path}"))?;
+    let scene = if path.to_lowercase().ends_with(".cty") {
         let w = gilde_formats::world::WorldFile::parse(&data)?;
         log::info!("city {:?}: {} buildings, {} characters", w.header.name, w.buildings.len(), w.characters.list.len());
         w.scene.context("city file without scene")?
@@ -77,10 +92,50 @@ pub fn load(args: &Args) -> Result<Loaded> {
     Ok(Loaded { world, assets, camera })
 }
 
+pub fn open_ui_assets(game: &std::path::Path, vfs: &Vfs) -> Result<gilde_ui::UiAssets> {
+    let dir = gilde_formats::vfs::find_ci(game, "gfx").context("gfx directory not found")?;
+    let file = std::fs::read_dir(&dir)?
+        .flatten()
+        .map(|e| e.path())
+        .find(|p| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("gfx")))
+        .context("no .gfx archive in gfx/")?;
+    let gfx = gilde_formats::gfx::GfxArchive::open(file)?;
+    let text = gilde_formats::text::TextDb::load(vfs, "german")?;
+    Ok(gilde_ui::UiAssets::new(gfx, text))
+}
+
 fn main() -> Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info,wgpu_core=warn,wgpu_hal=warn,naga=warn"))
         .init();
     let args = Args::parse();
+    if let Some(out) = &args.menu_screenshot {
+        let vfs = Vfs::open_game_dir(&args.game)?;
+        let assets = open_ui_assets(&args.game, &vfs)?;
+        let menu = menu::MainMenu::new(&vfs, &assets)?;
+        let mut list = gilde_ui::DrawList::default();
+        menu.screen.draw(&assets, &mut list);
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        let (_adapter, device, queue) = pollster::block_on(gilde_engine::render::create_device(None, &instance))?;
+        let fmt = wgpu::TextureFormat::Rgba8UnormSrgb;
+        let mut ui = gilde_engine::ui::UiRenderer::new(&device, fmt);
+        let px = gilde_engine::render::capture(&device, &queue, fmt, args.width, args.height, |view| {
+            let mut enc = device.create_command_encoder(&Default::default());
+            enc.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view,
+                    resolve_target: None,
+                    ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Store },
+                })],
+                ..Default::default()
+            });
+            queue.submit([enc.finish()]);
+            ui.render(&device, &queue, view, args.width, args.height, &assets, &list);
+        });
+        image::save_buffer(out, &px, args.width, args.height, image::ExtendedColorType::Rgba8)?;
+        log::info!("wrote {}", out.display());
+        return Ok(());
+    }
     if let Some(out) = &args.screenshot {
         let mut l = load(&args)?;
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());

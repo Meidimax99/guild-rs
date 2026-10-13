@@ -7,6 +7,7 @@ pub mod assets;
 pub mod camera;
 pub mod render;
 pub mod terrain;
+pub mod ui;
 pub mod world;
 
 pub use assets::Assets;
