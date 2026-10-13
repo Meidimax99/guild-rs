@@ -1,4 +1,37 @@
-target/
+# Rust / Cargo build output
+/target/
+**/target/
+# Cargo.lock is committed: this workspace builds executables.
+
+# rustc / tooling artifacts
+**/*.rs.bk
+*.pdb
+*.profraw
+*.profdata
+perf.data*
+flamegraph.svg
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python helpers in re/
+__pycache__/
+*.pyc
+
+# Generated outputs (exports, screenshots)
 *.obj
 *.mtl
-__pycache__/
+*.png
+!docs/**/*.png
+
+# Copyrighted game data and derived analysis must stay out of the repo
+/unpacked/
+/re-out/
+*.gpr
+*.rep/
+*.lock~
