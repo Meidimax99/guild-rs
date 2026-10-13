@@ -55,6 +55,11 @@ cargo run --release --bin gilde-game -- --screenshot shot.png --cam 0,9000,9000 
 
 Viewer controls: WASD/QE move, right mouse drag to look, shift = fast, wheel = speed.
 
+## Documentation
+
+See [`docs/`](docs/README.md): repository structure, reverse-engineering
+progress, file formats and the ESC script language.
+
 ## Reverse engineering
 
 `re/ghidra_scripts/ExportAll.java` decompiles every function and dumps strings
