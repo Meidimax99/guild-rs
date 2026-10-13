@@ -133,3 +133,14 @@
 00802140	g_dynasties	16 x 0xac
 0052d410	msg_DispatchQueue	game action messages (167 types)
 0052bc30	msg_RegisterHandler	(type, request_fn, execute_fn)
+00576680	ui_ToolTipBuilding	building tooltip: name/tier/price/build time
+00577140	ui_ToolTipCharacter	character tooltip: age/profession/offices/wealth/title/spouse
+004f7f00	geb_SumObjectPrices	building price = sum of installed object prices
+004f7f90	geb_Price
+004ec320	date_Add	(date, hours, minutes, seconds) with carry into round
+004ec3f0	date_Compare
+004ec4a0	date_ToCalendar	year 1400+round, month season*3+1
+005c3a70	opt_ApplyGameSpeed	time scale = 0.25 + speed/160 -> 0x620280
+00620280	g_time_scale
+0051ebc0	ui_AdvanceGame	fast-forward screen (time scale 4.9375)
+004d2250	cut_Execute	cutscene main function

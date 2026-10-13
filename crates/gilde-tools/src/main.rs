@@ -47,6 +47,9 @@ enum Cmd {
     Text { ids: Vec<String> },
     /// Compare a mesh's vertex count with an animation's frame size.
     AnimInfo { mesh: String, anim: String },
+    /// List building prototypes (A_Geb.dat) with names, tier, profession,
+    /// build time and installed objects.
+    Buildings,
     /// Export a BGF mesh to Wavefront OBJ (+MTL, textures copied as BMP).
     Obj { path: String, out_dir: PathBuf },
 }
@@ -135,6 +138,31 @@ fn main() -> Result<()> {
             );
             if let Some(f) = a.frames.first() {
                 println!("root {:?} {:?} dummies {:?}", f.root_position, f.root_rotation, f.dummies.iter().map(|d| &d.name).collect::<Vec<_>>());
+            }
+            Ok(())
+        }
+        Cmd::Buildings => {
+            let data = |f: &str| -> Result<Vec<u8>> {
+                let dir = gilde_formats::vfs::find_ci(&game, "data").context("Data directory")?;
+                Ok(std::fs::read(gilde_formats::vfs::find_ci(&dir, f).context(f.to_string())?)?)
+            };
+            let geb = gilde_formats::proto::parse_buildings(&data("a_geb.dat")?)?;
+            let obj = gilde_formats::proto::parse_objects(&data("a_obj.dat")?)?;
+            let db = gilde_formats::text::TextDb::load(&vfs, "german")?;
+            for b in geb.iter().skip(1) {
+                let installed: Vec<&str> =
+                    b.installed_objects().filter_map(|o| obj.get(o as usize)).map(|o| o.name.as_str()).collect();
+                println!(
+                    "{:2} {:28} class {:2} tier {} build {} prof {:?} | {:?} | objects {}",
+                    b.index,
+                    b.name,
+                    b.class,
+                    b.tier,
+                    b.build_rounds,
+                    db.get(0x130 + b.profession as u32).unwrap_or("-"),
+                    db.get(b.text_base()).unwrap_or("").replace('~', ""),
+                    installed.join(", ")
+                );
             }
             Ok(())
         }

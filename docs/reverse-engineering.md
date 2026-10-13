@@ -143,9 +143,24 @@ register them) but not ported.
 ### World state and game data — partly mapped
 
 * Prototypes: `gm_LoadPrototypes` (`0x4ec750`) reads `Data/A_Geb.dat` (88 of 192
-  records × 589 bytes) and `Data/A_Obj.dat` (732 × 65). Building record: byte 0
-  class (34 classes, e.g. 29 = graveyard), name at +1, 64 object slots at +0x23
-  (u16, high bit = flag), tier byte at +0x247. Most fields **open.**
+  records × 589 bytes) and `Data/A_Obj.dat` (732 × 65). **Partly done**
+  (`gilde_formats::proto`, `gilde buildings`). Building record:
+
+  | Offset | Meaning | Evidence |
+  |---|---|---|
+  | `+0x00` | class (34; e.g. 18 smithy, 29 graveyard, 30 residence) | compared throughout |
+  | `+0x01` | internal name (32 bytes) | data |
+  | `+0x21` | count of installed workshop objects | incremented in `gm_LoadPrototypes` |
+  | `+0x23` | 64 × u16 object slots, 0-terminated; bit 15 = installed when bought | `FUN_004f7f00` |
+  | `+0x223` | profession running the building (text `0x130 + n`) | `FUN_00586…` UI, AI |
+  | `+0x22f`, `+0x230` | arguments to `FUN_004b3950` | open |
+  | `+0x243` | build time in rounds ("Bauzeit") | building tooltip `0x576680` |
+  | `+0x247` | tier I–IV | tooltip, graveyard allocation |
+
+  Texts: prototype `i` owns 14 strings from id `0x48e + 14·i` (display name,
+  description, 12 upgrade names). Price = sum of the prices of the installed
+  objects (`FUN_004f7f00` → `FUN_004f69c0(object category, 100)`). Object record:
+  byte 0 item category, name at +1 (32 bytes), values at +0x21… (open).
 * City/savegame loader `sv_LoadWorld` (`0x50abf0`): all city sections parsed
   and verified (see [`formats.md`](formats.md)); savegame-only sections after
   the offices (≈15 loaders, `0x4e0d00`…`0x4ae3c0`) **located**.
