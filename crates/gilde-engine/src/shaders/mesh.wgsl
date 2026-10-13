@@ -2,8 +2,10 @@ struct Globals {
     view_proj: mat4x4<f32>,
     light_dir: vec4<f32>,
     ambient: vec4<f32>,
-    fog: vec4<f32>,       // rgb colour, w = 1/far
+    fog: vec4<f32>,       // rgb colour
     camera_pos: vec4<f32>,
+    sun: vec4<f32>,       // rgb sun colour
+    fog_range: vec4<f32>, // near, far
 };
 @group(0) @binding(0) var<uniform> g: Globals;
 @group(1) @binding(0) var tex: texture_2d<f32>;
@@ -39,9 +41,9 @@ fn vs_main(v: VsIn) -> VsOut {
 
 fn shade(base: vec3<f32>, n: vec3<f32>, world: vec3<f32>) -> vec3<f32> {
     let diff = abs(dot(n, -g.light_dir.xyz));
-    let lit = base * (g.ambient.rgb + diff * vec3<f32>(0.85, 0.82, 0.75));
-    let d = clamp(distance(world, g.camera_pos.xyz) * g.fog.w, 0.0, 1.0);
-    return mix(lit, g.fog.rgb, d * d);
+    let lit = base * (g.ambient.rgb + diff * g.sun.rgb);
+    let d = clamp((distance(world, g.camera_pos.xyz) - g.fog_range.x) / max(g.fog_range.y - g.fog_range.x, 1.0), 0.0, 1.0);
+    return mix(lit, g.fog.rgb, d);
 }
 
 @fragment

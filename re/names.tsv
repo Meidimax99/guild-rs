@@ -1,0 +1,135 @@
+# address	name	comment
+# --- program flow
+0052b320	WinMain	reads game.ini, inits gfx, menu/game loop
+00521c00	menu_Main	main menu (MENU/MAIN_MENU form, 9 buttons)
+0052a150	game_Session	one game session (load city/savegame, play)
+0051ed60	master_Step	per-frame master step; param_2 = subsystem flags (0x200 scripts, 0x40 3d, ...)
+0051df40	master_Present
+00520050	gfx_Init	D3D8 init + mount resource archives
+00427bb0	timer_Start	multimedia timer: period 14 ms increments tick counter
+006612cc	g_tick	engine tick counter (14 ms)
+00ff7b50	g_ms_per_tick
+# --- vfs / io
+00429760	vfs_Open	open file (VFS lookup, *name recursive search)
+00428be0	vfs_Lookup
+00428000	path_BackslashToSlash
+00428030	path_SlashToBackslash
+00429ec0	vfs_Read	fread(ptr,size,count,file)
+0042a120	vfs_Write
+00429d90	vfs_Close
+0042a290	vfs_Seek
+0041b660	mem_Alloc	(size, tag)
+0041b8c0	mem_Free
+0041b550	log_Error
+0060580a	sprintf
+004011d0	io_ReadU32
+00401180	io_ReadU8
+004011a0	io_ReadCStr
+00401240	io_ReadVec3
+00401270	io_ReadVec4
+00401380	io_ReadArrayQuick	u32 count, u32 elem_size, data
+00401320	io_WriteU32
+004011f0	io_WriteU8
+00401210	io_WriteCStr
+004012b0	io_WriteVec3
+004012e0	io_WriteVec4
+00401340	io_WriteArray
+# --- text
+00427650	txt_ReloadTextFile	load textbin_<lang>/<name>.res into global table
+00427a60	txt_FindKey	key -> global text id
+0144a280	g_text_table	char* per global text id
+# --- d3 engine
+00441920	d3_LoadObject	LoadAGI: BGF mesh -> engine object
+00443e80	d3_LoadBGF	parse BGF tagged mesh chunk
+00443530	bgf_ParseTable	table-driven tag parser
+004434c0	bgf_ReadTag
+00444e70	d3_LoadFastChunk	BGF 0x2d precomputed chunk
+00444db0	bgf_FindFastChunk
+00443ed0	d3_LoadBinaryAnimation	BAF
+0043fae0	d3_LoadScene	.ed3
+00440060	d3_LoadGroup	.ogr
+0043e890	d3_ReadObject	rd_object: recursive scene object node
+0043e6f0	d3_SaveScene
+0043f5b0	d3_ReadFloor
+00438580	d3_CreateFloor
+00434560	d3_ReadObjectProps
+00434600	d3_ReadSceneProps
+004474e0	math_EulerToMatrix	Rz*Ry*Rx row-major, used transposed
+00431df0	obj_SetRotation
+00431d20	obj_SetPosition
+004417e0	d3_LoadTextureSet	.txs
+00451560	tex_Load
+00450f00	tex_FindFile	textures/*<name>.bmp
+0043e6c0	scene_KeySlotCount	light/key slots by version
+00513b70	sky_UpdateLightByTime	date -> blend of 7 light sets
+0042b7d0	anim_NextFrame	loop/reverse/hold logic
+0042df30	anim_Attach	start animation on object slot (3 slots)
+0042ecd0	anim_BlendWeight
+0042b480	anim_RootOffset
+# --- d2 ui
+004635e0	d2_Open	open gfx archive, init d2
+00463d60	d2_LoadForm	FRM2 .form
+00461f70	d2_CreateWindow
+00462690	d2_CreateChildWindow
+00461670	d2_DrawWindow
+004613e0	d2_DrawWindowBackground
+0045d900	d2_DrawAll	z-ordered object draw
+0045c670	d2_CreateMenuButton	object type 9
+0045c770	d2_CreateMenuButtonInWindow
+0045c7c0	d2_DrawMenuButton
+0045ca90	d2_SetObjectWidth
+0045cd30	d2_CreateRadioGroup
+0045cf50	d2_UpdateRadioGroup
+0045f3a0	d2_DrawText	(x,y,w,h,surf,text,flags): wrap, ~ soft hyphen, 8 center, 0x10 right
+0045fc20	d2_DrawTextArea
+0045eba0	d2_TextWidth
+00459580	d2_FindGfx	name -> gfx entry index
+004595f0	d2_LoadGfx
+00469ce0	d2_ShapbankToTextures
+00469320	shp_GetFrame
+00469700	shp_BlitFrame	RLE RGB rows
+0046bb70	d2_BlitNormal	modulate 200,200,200
+0046bbc0	d2_BlitSelected	modulate 128
+0046bca0	d2_BlitHover	modulate 255
+0045d750	d2_SetBackground	gfx index (+res)
+004660d0	d2_Fade
+00521ba0	menu_AddButton
+# --- esc scripting
+00421820	evt_LoadScript
+00421590	evt_Preprocess
+00422960	evt_PreParse
+00421150	evt_GetToken
+00423220	evt_Eval
+00423be0	evt_ExecStatement
+00423910	evt_CallHost
+00423eb0	evt_PollLatent
+00424090	evt_TickScript
+004241e0	evt_TickAll
+00423180	evt_StopScript	runs exit() once
+004226a0	evt_EnterFunction
+004248a0	evt_ImportCommand	register host function (name, fn, ret, argc, types...)
+0040b5d0	ecmd_RegisterCore
+0040b440	ecmd_Sleep	latent: ms/14 ticks
+# --- game data / world
+004ec750	gm_LoadPrototypes	A_Geb.dat (88x589), A_Obj.dat (732x65)
+008100f0	g_geb_proto	building prototypes
+00946cb0	g_obj_proto	object prototypes
+008b6134	g_geb_inst	building instances (0xa9)
+008100f4	g_obj_inst	object instances (0x43)
+0050abf0	sv_LoadWorld	city (.cty) / savegame loader
+0050b180	sv_ReadHeader
+0050b660	sv_ReadObjects
+0050b7e0	sv_ReadBuildings
+0050bd90	sv_ReadDynasties
+0050c100	sv_ReadCharacters
+0050d310	sv_ReadMarkets
+004d8970	amt_LoadAemter	offices
+0050b570	sv_ReadCityScene	embedded .ed3
+00507350	sv_SaveWorld
+0079cca0	g_date	u32 round (&3 season), u16 hour @4, minute @6
+004ec530	date_Season
+004ec3c0	date_SetTime
+0079cd40	g_characters	0x21c per character
+00802140	g_dynasties	16 x 0xac
+0052d410	msg_DispatchQueue	game action messages (167 types)
+0052bc30	msg_RegisterHandler	(type, request_fn, execute_fn)

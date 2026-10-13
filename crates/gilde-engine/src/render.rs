@@ -21,6 +21,30 @@ struct Globals {
     ambient: [f32; 4],
     fog: [f32; 4],
     camera_pos: [f32; 4],
+    sun: [f32; 4],
+    fog_range: [f32; 4],
+}
+
+/// Scene lighting for one frame (blended light sets, see `world::lighting`).
+#[derive(Debug, Clone, Copy)]
+pub struct Lighting {
+    pub ambient: Vec3,
+    pub sun: Vec3,
+    pub fog_color: Vec3,
+    pub fog_near: f32,
+    pub fog_far: f32,
+}
+
+impl Default for Lighting {
+    fn default() -> Self {
+        Self {
+            ambient: Vec3::splat(0.45),
+            sun: Vec3::new(0.85, 0.82, 0.75),
+            fog_color: Vec3::new(0.55, 0.68, 0.85),
+            fog_near: 6000.0,
+            fog_far: 40000.0,
+        }
+    }
 }
 
 struct GpuSubMesh {
@@ -77,8 +101,7 @@ pub struct Renderer {
     actors: Vec<GpuActor>,
     terrain: Option<GpuTerrain>,
     depth: Option<(wgpu::TextureView, u32, u32)>,
-    pub clear_color: wgpu::Color,
-    pub ambient: Vec3,
+    pub lighting: Lighting,
 }
 
 pub async fn create_device(
@@ -278,8 +301,7 @@ impl Renderer {
             actors: Vec::new(),
             terrain: None,
             depth: None,
-            clear_color: wgpu::Color { r: 0.55, g: 0.68, b: 0.85, a: 1.0 },
-            ambient: Vec3::splat(0.45),
+            lighting: Lighting::default(),
         }
     }
 
@@ -372,7 +394,6 @@ impl Renderer {
     pub fn load_world(&mut self, world: &World, assets: &mut Assets) {
         self.meshes.clear();
         self.terrain = None;
-        self.ambient = (world.ambient / 100.0).clamp(Vec3::splat(0.25), Vec3::splat(0.8));
 
         let mut groups: Vec<(Arc<MeshData>, Vec<Mat4>)> = Vec::new();
         let mut index: HashMap<*const MeshData, usize> = HashMap::new();
@@ -539,13 +560,16 @@ impl Renderer {
     }
 
     pub fn render(&mut self, target: &wgpu::TextureView, width: u32, height: u32, camera: &Camera) {
-        let c = self.clear_color;
+        let l = self.lighting;
+        let c = wgpu::Color { r: l.fog_color.x as f64, g: l.fog_color.y as f64, b: l.fog_color.z as f64, a: 1.0 };
         let globals = Globals {
             view_proj: camera.view_proj(width as f32 / height as f32).to_cols_array_2d(),
             light_dir: Vec3::new(0.4, -0.8, 0.45).normalize().extend(0.0).to_array(),
-            ambient: self.ambient.extend(1.0).to_array(),
-            fog: Vec4::new(c.r as f32, c.g as f32, c.b as f32, 1.0 / camera.far).to_array(),
+            ambient: l.ambient.extend(1.0).to_array(),
+            fog: l.fog_color.extend(1.0).to_array(),
             camera_pos: camera.position.extend(1.0).to_array(),
+            sun: l.sun.extend(1.0).to_array(),
+            fog_range: Vec4::new(l.fog_near, l.fog_far.min(camera.far), 0.0, 0.0).to_array(),
         };
         self.queue.write_buffer(&self.globals, 0, bytemuck::bytes_of(&globals));
         let depth = self.depth_view(width, height);

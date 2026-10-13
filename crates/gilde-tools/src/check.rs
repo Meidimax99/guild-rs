@@ -95,11 +95,27 @@ pub fn tree(vfs: &Vfs, path: &str) -> Result<()> {
         }
     }
     let data = vfs.read(path)?;
-    let objects = if path.to_lowercase().ends_with(".ogr") {
+    let lower = path.to_lowercase();
+    let data = if lower.ends_with(".cty") {
+        // City files embed the scene after the world state.
+        let w = world::WorldFile::parse(&data)?;
+        data[w.tail_offset..].to_vec()
+    } else {
+        data
+    };
+    let objects = if lower.ends_with(".ogr") {
         scene::Group::parse(&data)?.objects
     } else {
         let s = scene::Scene::parse(&data)?;
-        println!("version {:#x} camera {:?} ambient {:?} props {:?}", s.version, s.camera, s.ambient, s.properties);
+        println!("version {:#x} camera {:?} ambient {:?} props {:?} fog {:?}", s.version, s.camera, s.ambient, s.properties, s.fog);
+        for (i, ls) in s.light_sets.iter().enumerate() {
+            let e: Vec<String> = ls
+                .entries
+                .iter()
+                .map(|e| format!("{:02x?} {:.2} {:.2}", e[0].to_le_bytes(), f32::from_bits(e[1]), f32::from_bits(e[2])))
+                .collect();
+            println!("light set {i}: ambient {:?} ambient2 {:?} entries {:?}", ls.ambient, ls.ambient2, e);
+        }
         if let Some(f) = &s.floor {
             println!(
                 "floor {:?} stride {} heights {}B heights2 {}B water {} name2 {:?} textures {:?} params {:?} offset {:?}",

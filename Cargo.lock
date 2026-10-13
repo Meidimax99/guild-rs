@@ -761,6 +761,7 @@ dependencies = [
  "env_logger",
  "gilde-engine",
  "gilde-formats",
+ "gilde-sim",
  "gilde-ui",
  "glam",
  "image",
@@ -771,8 +772,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "gilde-sim"
+version = "0.1.0"
+
+[[package]]
 name = "gilde-tools"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",

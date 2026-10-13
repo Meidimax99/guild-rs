@@ -38,6 +38,12 @@ pub struct Args {
     width: u32,
     #[arg(long, default_value_t = 720)]
     height: u32,
+    /// Time of day "HH:MM" for lighting (game days start at 06:00).
+    #[arg(long, default_value = "12:00")]
+    time: String,
+    /// Round (day) number; the season is round % 4.
+    #[arg(long, default_value_t = 0)]
+    round: i32,
     /// Spawn a few animated characters at the camera target (debug).
     #[arg(long)]
     demo_actors: bool,
@@ -61,6 +67,14 @@ pub struct Loaded {
     pub world: World,
     pub assets: Assets,
     pub camera: Camera,
+    pub date: gilde_sim::Date,
+}
+
+impl Loaded {
+    pub fn lighting(&self) -> Option<gilde_engine::render::Lighting> {
+        let p = gilde_sim::DayPhase::at(&self.date);
+        gilde_engine::world::lighting(&self.world.light_sets, p.set, p.blend)
+    }
 }
 
 impl Args {
@@ -95,7 +109,12 @@ pub fn load(args: &Args) -> Result<Loaded> {
     if let Some(t) = args.look {
         camera.look_at(t);
     }
-    Ok(Loaded { world, assets, camera })
+    let mut date = gilde_sim::Date::start_of_round(args.round);
+    if let Some((h, m)) = args.time.split_once(':') {
+        date.hour = h.parse().unwrap_or(12);
+        date.minute = m.parse().unwrap_or(0);
+    }
+    Ok(Loaded { world, assets, camera, date })
 }
 
 pub fn open_ui_assets(game: &std::path::Path, vfs: &Vfs) -> Result<gilde_ui::UiAssets> {
@@ -148,6 +167,9 @@ fn main() -> Result<()> {
         let (_adapter, device, queue) = pollster::block_on(gilde_engine::render::create_device(None, &instance))?;
         let mut r = Renderer::new(device, queue, wgpu::TextureFormat::Rgba8UnormSrgb);
         r.load_world(&l.world, &mut l.assets);
+        if let Some(light) = l.lighting() {
+            r.lighting = light;
+        }
         if args.demo_actors {
             let center = args.look.unwrap_or(glam::Vec3::ZERO);
             let demo = demo_actors(&mut l, center);

@@ -4,6 +4,8 @@ struct Globals {
     ambient: vec4<f32>,
     fog: vec4<f32>,
     camera_pos: vec4<f32>,
+    sun: vec4<f32>,
+    fog_range: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> g: Globals;
 @group(1) @binding(0) var layers: texture_2d_array<f32>;
@@ -50,7 +52,7 @@ fn fs_main(i: VsOut) -> @location(0) vec4<f32> {
     c = c / max(wsum, 0.0001);
     let n = normalize(i.normal);
     let diff = max(dot(n, -g.light_dir.xyz), 0.0);
-    let lit = c * (g.ambient.rgb + diff * vec3<f32>(0.85, 0.82, 0.75));
-    let d = clamp(distance(i.world, g.camera_pos.xyz) * g.fog.w, 0.0, 1.0);
-    return vec4<f32>(mix(lit, g.fog.rgb, d * d), 1.0);
+    let lit = c * (g.ambient.rgb + diff * g.sun.rgb);
+    let d = clamp((distance(i.world, g.camera_pos.xyz) - g.fog_range.x) / max(g.fog_range.y - g.fog_range.x, 1.0), 0.0, 1.0);
+    return vec4<f32>(mix(lit, g.fog.rgb, d), 1.0);
 }

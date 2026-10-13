@@ -10,6 +10,7 @@ clap.workspace = true
 env_logger.workspace = true
 gilde-engine = { version = "0.1.0", path = "../gilde-engine" }
 gilde-formats = { version = "0.1.0", path = "../gilde-formats" }
+gilde-sim = { version = "0.1.0", path = "../gilde-sim" }
 gilde-ui = { version = "0.1.0", path = "../gilde-ui" }
 glam.workspace = true
 image = { version = "0.25.10", default-features = false, features = ["png"] }

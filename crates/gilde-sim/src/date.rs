@@ -1,0 +1,148 @@
+//! The game date (`g_date`, 14 bytes at `0x79cca0`).
+//!
+//! ```text
+//! u32 round     one round = one in-game day, shown as a year (1400 + round);
+//!               round & 3 is the season (date_Season, FUN_004ec530)
+//! u16 hour      @4
+//! u32 minute    @6
+//! u32 second    @10
+//! ```
+//! Days start at 06:00 (`game_Session`). [`Date::add`] is `FUN_004ec320`,
+//! ordering is `FUN_004ec3f0`, the calendar view is `FUN_004ec4a0`.
+
+use std::cmp::Ordering;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Date {
+    pub round: i32,
+    pub hour: u16,
+    pub minute: i32,
+    pub second: i32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Season {
+    Spring,
+    Summer,
+    Autumn,
+    Winter,
+}
+
+impl Date {
+    pub fn start_of_round(round: i32) -> Self {
+        Date { round, hour: 6, minute: 0, second: 0 }
+    }
+
+    pub fn season_index(&self) -> usize {
+        (self.round & 3) as usize
+    }
+
+    pub fn season(&self) -> Season {
+        [Season::Spring, Season::Summer, Season::Autumn, Season::Winter][self.season_index()]
+    }
+
+    /// Seconds since midnight.
+    pub fn time_of_day(&self) -> i32 {
+        (self.hour as i32 * 60 + self.minute) * 60 + self.second
+    }
+
+    /// `FUN_004ec320`: add hours/minutes/seconds with carry into the round.
+    pub fn add(&mut self, hours: i32, minutes: i32, seconds: i32) {
+        let s = self.second + seconds;
+        let m = self.minute + s.div_euclid(60) + minutes;
+        self.second = s.rem_euclid(60);
+        let h = self.hour as i32 + m.div_euclid(60) + hours;
+        self.minute = m.rem_euclid(60);
+        self.round += h.div_euclid(24);
+        self.hour = h.rem_euclid(24) as u16;
+    }
+
+    /// Calendar display (`FUN_004ec4a0`): year 1400 + round, month by season.
+    pub fn year(&self) -> i32 {
+        1400 + self.round
+    }
+
+    pub fn month(&self) -> u32 {
+        self.season_index() as u32 * 3 + 1
+    }
+}
+
+impl PartialOrd for Date {
+    fn partial_cmp(&self, o: &Self) -> Option<Ordering> {
+        Some(self.cmp(o))
+    }
+}
+
+impl Ord for Date {
+    fn cmp(&self, o: &Self) -> Ordering {
+        self.round.cmp(&o.round).then(self.time_of_day().cmp(&o.time_of_day()))
+    }
+}
+
+/// Light-transition times per season in minutes (`0x618c40`, 4 × 6 ints).
+pub const LIGHT_TIMES: [[i32; 6]; 4] = [
+    [390, 510, 630, 1050, 1170, 1290],
+    [300, 420, 540, 1140, 1260, 1380],
+    [420, 540, 660, 1020, 1140, 1260],
+    [480, 600, 690, 960, 1020, 1140],
+];
+
+/// Which of the scene's 7 light sets to use and how far to blend into the next.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DayPhase {
+    pub set: usize,
+    pub blend: f32,
+}
+
+impl DayPhase {
+    /// `sky_UpdateLightByTime` (`FUN_00513b70`): map the time of day onto
+    /// 0..600 piecewise between the season's transition times; the day span
+    /// (t2..t3) covers 200 units, the others 100.
+    pub fn at(date: &Date) -> Self {
+        let t = date.time_of_day();
+        let b = LIGHT_TIMES[date.season_index()].map(|m| m * 60);
+        let seg = |lo: i32, hi: i32, span: i32, base: i32| base + (t - lo) * span / (hi - lo).max(1);
+        let v = if t < b[0] {
+            0
+        } else if t < b[1] {
+            seg(b[0], b[1], 100, 0)
+        } else if t < b[2] {
+            seg(b[1], b[2], 100, 100)
+        } else if t < b[3] {
+            seg(b[2], b[3], 200, 200)
+        } else if t < b[4] {
+            seg(b[3], b[4], 100, 400)
+        } else if t < b[5] {
+            seg(b[4], b[5], 100, 500)
+        } else {
+            600
+        };
+        let set = (v / 100) as usize;
+        DayPhase { set: set % 7, blend: v as f32 * 0.01 - set as f32 }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn add_carries() {
+        let mut d = Date::start_of_round(3);
+        d.add(17, 59, 61);
+        assert_eq!(d, Date { round: 4, hour: 0, minute: 0, second: 1 });
+        d.add(0, -1, 0);
+        assert_eq!((d.round, d.hour, d.minute), (3, 23, 59));
+    }
+
+    #[test]
+    fn phases() {
+        let mut d = Date::start_of_round(0);
+        d.hour = 3;
+        assert_eq!(DayPhase::at(&d).set, 0);
+        d.hour = 12;
+        assert_eq!(DayPhase::at(&d).set, 2);
+        d.hour = 23;
+        assert_eq!(DayPhase::at(&d).set, 6);
+    }
+}

@@ -203,6 +203,12 @@ impl ApplicationHandler for App {
                             }
                         }
                         let cam = *cam;
+                        // Day advances while viewing (rate is a placeholder until the
+                        // engine's clock rate is recovered): 1 game minute per second.
+                        l.date.add(0, 0, (dt * 60.0) as i32);
+                        if let Some(light) = l.lighting() {
+                            gfx.renderer.lighting = light;
+                        }
                         gfx.renderer.render(&view, w, h, &cam);
                     }
                     Mode::Menu(m) => {
