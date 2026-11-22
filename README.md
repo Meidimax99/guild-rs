@@ -21,6 +21,7 @@ original game data, which is not included here.
 | Characters, animation playback, navigation | todo |
 | UI system (windows, controls, fonts) | todo |
 | Audio (Miles → native) | todo |
+| Game clock, replicated commands, game server core | started (`gilde-sim`, `gilde-net`) |
 | Game simulation (economy, dynasties, politics, AI) | todo |
 
 ## Layout

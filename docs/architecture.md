@@ -115,16 +115,19 @@ Who sends `0x1e`:
   |---|---|---|---|---|---|
   | ms per game minute | 1155 | 937 | 770 | 577 | 385 |
 
-  After 22:00 the server sends `0x20` sub-type 2 (end of round), increments
-  the round and sets 06:00. A round (06:00–22:00 = 960 minutes) lasts about
-  12.3 real minutes at the default speed.
+  When a tick reaches 23:00 the server sends `0x20` sub-type 2 (end of
+  round; flagged 1 for the first connection), increments the round, sets
+  06:00 and waits until every client has acknowledged again before the next
+  tick. Within a day ticks follow at the fixed interval without waiting.
+  A round (06:00–23:00 = 1020 minutes) lasts about 13.1 real minutes at the
+  default speed.
 * **Single player: the client itself.** `clk_Advance` (`0x51f960`), a timer
   every 71 ticks (≈ 1 s), adds `(speed × 0.00625 + 0.5) × 100` game seconds
   to a local date while the hour is below 23. `master_Step` sends that date
   with `cm_RequestSetDate` (`0x4b30c0`) when the network layer is offline;
   the command loops back through the same queue. `speed` is `game.ini`
   `[…] speed` or the options slider (steps of 40; fast-forward sets 750).
-  At speed 40 a round takes about 12.8 real minutes.
+  At speed 40 a round takes about 13.6 real minutes.
 
 ## 6. Network architecture
 

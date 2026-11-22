@@ -7,7 +7,8 @@ gilde-rs/
 ├── crates/
 │   ├── gilde-formats/    file formats and VFS (no GPU, no game logic)
 │   ├── gilde-esc/        ESC script language
-│   ├── gilde-sim/        game simulation (calendar so far)
+│   ├── gilde-sim/        game simulation: calendar, clock, commands
+│   ├── gilde-net/        networking: server core, wire framing
 │   ├── gilde-ui/         2D UI model, renderer-independent
 │   ├── gilde-engine/     wgpu renderer and world assembly
 │   ├── gilde-game/       the game executable
@@ -66,7 +67,16 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 
 | Module | Contents |
 |---|---|
-| `date` | `Date` (round/hour/minute/second, `add`, ordering, season, calendar), `DayPhase` (light set + blend from the seasonal table) |
+| `date` | `Date` (round/hour/minute/second, `add`, ordering, season, calendar, 14-byte encoding), `DayPhase` (light set + blend from the seasonal table) |
+| `clock` | `LocalClock` (single-player `clk_Advance`), `ServerClock` (server tick, speed table, end of round) |
+| `command` | `Command` (0x99-byte record, known types and system sub-types), `Executor` (handler table, transactions, sequence gaps) |
+
+## `gilde-net`
+
+| Module | Contents |
+|---|---|
+| `server` | `Server`: transport-independent game server (handshake, lobby, client indices, validation through an `Authority`, echo and broadcast, game clock, timeouts) |
+| `frame` | wire framing and stream `Decoder` |
 
 ## `gilde-ui`
 

@@ -772,6 +772,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "gilde-net"
+version = "0.1.0"
+dependencies = [
+ "gilde-sim",
+ "log",
+]
+
+[[package]]
 name = "gilde-sim"
 version = "0.1.0"
 

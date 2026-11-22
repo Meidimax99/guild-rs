@@ -65,6 +65,33 @@ impl Date {
     pub fn month(&self) -> u32 {
         self.season_index() as u32 * 3 + 1
     }
+
+    /// The 14-byte layout used in memory, savegames and command payloads.
+    pub fn to_bytes(&self) -> [u8; 14] {
+        let mut b = [0u8; 14];
+        b[0..4].copy_from_slice(&self.round.to_le_bytes());
+        b[4..6].copy_from_slice(&self.hour.to_le_bytes());
+        b[6..10].copy_from_slice(&self.minute.to_le_bytes());
+        b[10..14].copy_from_slice(&self.second.to_le_bytes());
+        b
+    }
+
+    pub fn from_bytes(b: &[u8]) -> Option<Self> {
+        let b: &[u8; 14] = b.get(..14)?.try_into().ok()?;
+        Some(Date {
+            round: i32::from_le_bytes(b[0..4].try_into().unwrap()),
+            hour: u16::from_le_bytes(b[4..6].try_into().unwrap()),
+            minute: i32::from_le_bytes(b[6..10].try_into().unwrap()),
+            second: i32::from_le_bytes(b[10..14].try_into().unwrap()),
+        })
+    }
+
+    /// Set the time of day, keeping the round (`date_SetTime`).
+    pub fn set_time(&mut self, hour: u16, minute: i32, second: i32) {
+        self.hour = hour;
+        self.minute = minute;
+        self.second = second;
+    }
 }
 
 impl PartialOrd for Date {

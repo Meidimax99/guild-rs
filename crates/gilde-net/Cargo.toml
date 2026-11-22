@@ -1,0 +1,9 @@
+[package]
+name = "gilde-net"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+gilde-sim = { path = "../gilde-sim" }
+log.workspace = true
