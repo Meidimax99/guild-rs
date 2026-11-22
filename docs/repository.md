@@ -153,6 +153,7 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 | `scripts/esc_api.py` | extract script host-function registrations |
 | `scripts/gfx_dump.py` | reference SHAPBANK → PNG decoder |
 | `scripts/split_decomp.py` | split `decomp.c` into per-module files + `index.tsv` |
+| `scripts/difftest.py` | run original functions in an x86 emulator and record test vectors for `gilde-sim` |
 
 ## Outside the repository
 

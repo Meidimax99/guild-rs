@@ -46,15 +46,30 @@ impl Date {
         (self.hour as i32 * 60 + self.minute) * 60 + self.second
     }
 
-    /// `FUN_004ec320`: add hours/minutes/seconds with carry into the round.
+    /// `date_Add` (`0x4ec320`): add hours/minutes/seconds with carry into the
+    /// round — exactly as the original, which divides with truncation (so
+    /// negative inputs can leave negative minutes/seconds) and keeps the hour
+    /// in a 16-bit field (a negative hour sum wraps). Checked against the
+    /// original with recorded vectors (`tests/difftest.rs`).
     pub fn add(&mut self, hours: i32, minutes: i32, seconds: i32) {
-        let s = self.second + seconds;
-        let m = self.minute + s.div_euclid(60) + minutes;
-        self.second = s.rem_euclid(60);
-        let h = self.hour as i32 + m.div_euclid(60) + hours;
-        self.minute = m.rem_euclid(60);
-        self.round += h.div_euclid(24);
-        self.hour = h.rem_euclid(24) as u16;
+        let s = self.second.wrapping_add(seconds);
+        let m = self.minute.wrapping_add(s / 60);
+        self.second = s % 60;
+        let m = m.wrapping_add(minutes);
+        self.hour = self.hour.wrapping_add((m / 60) as u16);
+        self.minute = m % 60;
+        let mut h = (self.hour as u32).wrapping_add(hours as u32);
+        if (h as i32) > 23 {
+            self.round = self.round.wrapping_add((h / 24) as i32);
+            h %= 24;
+        }
+        if (h as i32) < 0 {
+            let k = (h.wrapping_neg().wrapping_sub(1)) / 24 + 1;
+            self.round = self.round.wrapping_sub(k as i32);
+            self.hour = (h as u16).wrapping_add((k as u16).wrapping_mul(24));
+        } else {
+            self.hour = h as u16;
+        }
     }
 
     /// Calendar display (`FUN_004ec4a0`): year 1400 + round, month by season.
@@ -164,8 +179,13 @@ mod tests {
         let mut d = Date::start_of_round(3);
         d.add(17, 59, 61);
         assert_eq!(d, Date { round: 4, hour: 0, minute: 0, second: 1 });
+        // Like the original: truncating division leaves a negative minute
+        // instead of borrowing from the hour.
         d.add(0, -1, 0);
-        assert_eq!((d.round, d.hour, d.minute), (3, 23, 59));
+        assert_eq!((d.round, d.hour, d.minute), (4, 0, -1));
+        // Negative hours do borrow from the round.
+        d.add(-1, 1, 0);
+        assert_eq!((d.round, d.hour, d.minute), (3, 23, 0));
     }
 
     #[test]

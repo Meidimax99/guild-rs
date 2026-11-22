@@ -9,6 +9,21 @@ Status legend: **done** (understood and implemented in Rust, verified against
 shipped data), **mapped** (understood well enough to describe, not yet ported),
 **located** (entry points known, internals not analysed), **open** (not started).
 
+## Differential testing
+
+`re/scripts/difftest.py` loads `GildeGold_TL.exe` into an x86 emulator
+(Unicorn, in the `guild` conda environment), calls original functions with
+random inputs and records inputs and outputs as JSON in
+`crates/gilde-sim/tests/data/`; `crates/gilde-sim/tests/difftest.rs` replays
+them against the port. Covered so far, all matching: `date_Add`,
+`date_MinutesBetween`, `clk_Advance`, `chr_UpdateDrivesOne` (bit-exact).
+This found two things a reading of the decompile missed: `date_Add`
+truncates (negative inputs leave negative minutes/seconds, a negative hour
+wraps in its 16-bit field), and the game computes with the x87 FPU in 24-bit
+precision — the Direct3D 8 device is created without
+`D3DCREATE_FPU_PRESERVE` — so the port must use `f32` arithmetic. Every call
+starts with a reset FPU and control word `0x007F`.
+
 ## Coverage
 
 The executable has 6496 functions after a function search over the uncovered

@@ -26,11 +26,14 @@ pub const SERVER_MS_PER_MINUTE: [u32; 5] = [1155, 937, 770, 577, 385];
 pub const SERVER_DEFAULT_SPEED: usize = 2;
 
 /// Game seconds added per `clk_Advance` call for a `speed` setting (`game.ini`
-/// `speed`, options slider in steps of 40, fast-forward 750). Same arithmetic
-/// as the x87 code: single-precision 0.00625, double 0.5, truncation.
+/// `speed`, options slider in steps of 40, fast-forward 750).
+///
+/// The game runs with the x87 FPU in 24-bit precision (Direct3D 8 without
+/// `D3DCREATE_FPU_PRESERVE`), so every intermediate result is rounded to
+/// single precision; `f32` arithmetic reproduces that exactly (e.g. speed 296
+/// gives 234, not 235). Checked against the original in `tests/difftest.rs`.
 pub fn local_seconds_per_call(speed: i32) -> i32 {
-    let factor = 0.0062500000931322575_f64; // f32 constant at 0x618d20
-    ((speed as f64 * factor + 0.5) * 100.0) as i32
+    ((speed as f32 * 0.00625_f32 + 0.5) * 100.0) as i32
 }
 
 /// Single-player clock.
