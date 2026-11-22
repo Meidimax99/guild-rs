@@ -31,6 +31,8 @@ crates/
   gilde-formats   parsers for every file format, VFS
   gilde-esc       ESC script language: parser, VM, scheduler
   gilde-engine    wgpu renderer, world assembly, camera
+  gilde-sim       game simulation: date, clock, commands, drives, AI scheduling, notices
+  gilde-net       game server core and TCP transport (server.dll replacement)
   gilde-game      the executable (viewer for now)
   gilde-tools     `gilde` CLI: check/dump/convert game data
 docs/             reverse-engineering notes (formats, ESC, addresses)
@@ -49,6 +51,8 @@ cargo run --release --bin gilde -- check          # parse every shipped file
 cargo run --release --bin gilde -- tree 'scenes/*stadt_augsburg.ed3'
 cargo run --release --bin gilde -- gfx-png _MENUE_BACKGROUND menu.png
 cargo run --release --bin gilde -- obj 'objects/*ub_PFOSTEN_LAGERHAUS.bgf' out/
+cargo run --release --bin gilde -- sim path/to/save.SAV --minutes 600   # headless simulation
+cargo run --release --bin gilde -- server                               # game server on TCP 7531
 
 cargo run --release --bin gilde-game -- --scene resources/gamedata/cities/augsburg.cty
 cargo run --release --bin gilde-game -- --screenshot shot.png --cam 0,9000,9000 --look 0,0,0
@@ -58,12 +62,17 @@ Viewer controls: WASD/QE move, right mouse drag to look, shift = fast, wheel = s
 
 ## Documentation
 
-See [`docs/`](docs/README.md): repository structure, reverse-engineering
-progress, file formats and the ESC script language.
+See [`docs/`](docs/README.md): repository structure, game and server
+architecture, reverse-engineering progress, file and savegame formats, and the
+ESC script language.
 
 ## Reverse engineering
 
-`re/ghidra_scripts/ExportAll.java` decompiles every function and dumps strings
-with cross references (headless Ghidra); `DecompileAt.java` decompiles code
-that Ghidra only reaches through data tables. Function addresses in comments
-and docs refer to `GildeGold_TL.exe` (SHA-256 `cd40c06e…f6d0`, base `0x400000`).
+`re/decompile.sh` reproduces the full decompile of the executable and
+`server.dll` with headless Ghidra: `FindFunctions.java` recovers functions the
+auto-analysis misses, `ExportAll.java` decompiles every function and dumps
+strings with cross references, and `DecompileAt.java` decompiles code that
+Ghidra only reaches through data tables. `re/scripts/difftest.py` runs original
+functions in an x86 emulator (conda env `guild`) and records test vectors that
+the Rust port is checked against. Function addresses in comments and docs refer
+to `GildeGold_TL.exe` (SHA-256 `cd40c06e…f6d0`, base `0x400000`).
