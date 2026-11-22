@@ -39,6 +39,8 @@ pub fn run(vfs: &Vfs, path: &str, minutes: u32) -> Result<()> {
     let file = WorldFile::parse(&data)?;
     let mut world = World::from_file(&file);
     world.notices = gilde_sim::notices::Notices::from_saved(gilde_formats::savegame::notices(&data, &file)?);
+    let dfn = vfs.read("*ai_data_2.dfn").context("AI action catalogue")?;
+    world.actions = gilde_sim::actions::ActionTable::new(&gilde_formats::ai::AiActions::parse(&dfn)?);
     let alive = world.characters.iter().flatten().filter(|c| c.life != 0).count();
     println!(
         "{path}: {} {:02}:{:02}, {alive} living characters, {} pending notices",
@@ -57,6 +59,7 @@ pub fn run(vfs: &Vfs, path: &str, minutes: u32) -> Result<()> {
     });
     let start = world.date;
     let (mut changes, mut visits, mut decisions) = (0usize, 0usize, 0usize);
+    let mut done: BTreeMap<u8, usize> = BTreeMap::new();
     let mut last_hour = world.date.hour;
     while start.minutes_until(&world.date) < target {
         let Some(tick) = clock.update(period, &world.date) else {
@@ -71,7 +74,16 @@ pub fn run(vfs: &Vfs, path: &str, minutes: u32) -> Result<()> {
             }
             changes += r.activity_changes.len();
             visits += r.visits.len();
-            decisions += r.visits.iter().filter(|v| v.decide).count();
+            decisions += r.decisions.len();
+            for (_, choice, carried_out) in &r.decisions {
+                if *carried_out {
+                    *done.entry(choice.action).or_default() += 1;
+                }
+            }
+            // Single player: the commands come straight back.
+            for cmd in &r.commands {
+                world.apply(cmd);
+            }
         }
         if world.date.hour != last_hour {
             last_hour = world.date.hour;
@@ -81,6 +93,14 @@ pub fn run(vfs: &Vfs, path: &str, minutes: u32) -> Result<()> {
                 world.date.minute,
                 show(&activities(&world))
             );
+            if !done.is_empty() {
+                let names: Vec<String> = done
+                    .iter()
+                    .map(|(a, n)| format!("{} {n}", world.actions.get(*a).map(|d| d.name).unwrap_or("?")))
+                    .collect();
+                println!("       actions: {}", names.join(", "));
+                done.clear();
+            }
             changes = 0;
             visits = 0;
             decisions = 0;

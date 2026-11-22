@@ -1,0 +1,74 @@
+# AI actions (table 0xfb0080): registration data dumped with re/scripts/ai_methods.py. flags low byte & character +0x218 = may use; 0x200 = repeatable. Drive weights: gamedata/ai/ai_data_2.dfn. ported = target/execute ported in gilde_sim::actions
+id	name	score	target	execute	flags	ported
+1	DummyUnversehrtheit	ai_ScoreAction	FUN_004844a0	FUN_005be140	0x1	yes
+2	DummyBeruf	ai_ScoreAction	FUN_004844c0	FUN_004844e0	0x1	yes
+3	DummyVergnuegen	ai_ScoreAction	FUN_004844f0	FUN_00484510	0x1	yes
+4	Bildung	ai_ScoreAction	FUN_00484520	FUN_00484a20	0x1	
+5	Bildung (Beruf)	ai_ScoreAction	FUN_00484a80	FUN_00484f20	0x1	
+6	DummyRechtschaffenheit	ai_ScoreAction	FUN_00484410	FUN_00484430	0x1	yes
+7	DummySicherheit	ai_ScoreAction	FUN_00484440	FUN_00484460	0x1	yes
+8	DummyFortpflanzung	ai_ScoreAction	FUN_00484470	FUN_00484490	0x1	yes
+9	Bestechung	FUN_00484f80	FUN_004852b0	FUN_00485740	0x19	
+10	Amtsbewerbung	FUN_00485860	FUN_00485900	FUN_00485aa0	0x1b	
+11	Objekt kaufen	ai_ScoreAction	FUN_00485ad0	FUN_00485e40	0x1	
+12	Objekt Kaufen (Markt)	ai_ScoreAction	FUN_0048ac00	FUN_0048acf0	0xff	
+13	Objekt kaufen (AP)	ai_ScoreAction	FUN_00402da0	FUN_00402da0	0x1	
+14	Raum kaufen	ai_ScoreAction	FUN_00485f60	FUN_004860f0	0xff	
+15	Repair Building	ai_ScoreAction	FUN_00486160	FUN_00486350	0xff	
+16	Wohnsitz kaufen	ai_ScoreAction	FUN_00486410	FUN_004868e0	0x3	
+17	Wohnsitz bauen	ai_ScoreAction	FUN_00486940	FUN_00486ef0	0x3	
+18	Wohnsitz upgraden (Credits)	ai_ScoreAction	FUN_00486ff0	FUN_00402da0	0x3	
+19	Betrieb bauen	ai_ScoreAction	FUN_004870e0	FUN_00487700	0x3	
+20	Betrieb upgraden (AP)	ai_ScoreAction	FUN_00402da0	FUN_00402da0	0x3	
+21	Betrieb upgraden (Credits)	ai_ScoreAction	FUN_00487870	FUN_00402da0	0x3	
+22	Medicus ausfsuchen	ai_ScoreAction	FUN_00487990	FUN_004879f0	0x3b	
+23	Sabotieren	FUN_00487a40	FUN_00487ad0	FUN_00487f00	0x1c3	
+24	Verpruegeln	FUN_00487ff0	FUN_00488080	FUN_00488390	0x1c9	
+25	Buergerrecht	ai_ScoreAction	FUN_00488490	FUN_00488510	0x1b	
+26	ApsSparen	ai_ScoreAction	FUN_00488700	FUN_004887f0	0x1	
+27	UseObject (Military)	ai_ScoreAction	FUN_00488800	FUN_00488a20	0x3	
+28	UseObject (Ansehen)	ai_ScoreAction	FUN_00488b00	FUN_00488ef0	0x19	
+29	UseObject (APS)	ai_ScoreAction	FUN_00488fd0	FUN_004891f0	0x39	
+30	UseObject (Bildung)	ai_ScoreAction	FUN_004892c0	FUN_004894c0	0x3b	
+31	UseObject (Unversehrtheit)	ai_ScoreAction	FUN_00489590	FUN_00489720	0x3f	
+32	UseObject (Dynastie)	ai_ScoreAction	FUN_004897f0	FUN_00489b60	0x17	
+33	UseObject (Gemeinheit)	ai_ScoreAction	FUN_00489c30	FUN_0048a0c0	0xc9	
+34	UseObject (Sicherheit)	ai_ScoreAction	FUN_0048a200	FUN_0048a470	0x39	
+35	Use Parfuem	FUN_0048a540	FUN_0048a5e0	FUN_0048a600	0xff	
+36	Use Trank	FUN_0048a790	FUN_0048a830	FUN_0048a850	0xff	
+37	Spionage	ai_ScoreAction	FUN_0048a9e0	FUN_0048ab70	0x69	
+38	Ablass Kaufen	ai_ScoreAction	FUN_0048ad50	FUN_0048afd0	0x39	
+39	UseAmt	ai_ScoreAction	FUN_0048b1a0	FUN_0048b220	0xff	
+40	Drohen	FUN_0048b240	FUN_0048b2c0	FUN_0048b4a0	0x5d	
+41	Pamphlete	FUN_0048b4c0	FUN_0048b560	FUN_0048b6f0	0x5d	
+42	Anschwaerzen	ai_ScoreAction	FUN_0048b740	FUN_0048b8d0	0x39	
+43	Beleidigen	FUN_0048b920	FUN_0048b9c0	FUN_0048ba50	0xc9	
+44	Erpressen	FUN_0048ba70	FUN_0048bb10	FUN_0048bba0	0xc9	
+45	UsePrivs	ai_ScoreAction	FUN_0048bbc0	FUN_0048bc40	0xff	
+46	Buergermeister	FUN_0048bc60	FUN_0048bd40	FUN_0048c080	0x39	
+47	Baumeister	ai_ScoreAction	FUN_0048cc10	FUN_0048cf00	0x3b	
+48	Buergermeister upgrade	ai_ScoreAction	FUN_0048c200	FUN_00402da0	0x39	
+49	Buergermeister Rathaus	ai_ScoreAction	FUN_0048c360	FUN_0048c6a0	0x39	
+50	Dunkle Ecke	FUN_0048d080	FUN_0048d180	FUN_0048d290	0x69	
+51	Kredit Nehmen	ai_ScoreAction	FUN_0048d330	FUN_0048d7e0	0x7	
+52	Change Profession	FUN_0048d960	FUN_0048da30	FUN_0048dc60	0x7	
+53	Stammtisch	ai_ScoreAction	FUN_0048dcc0	FUN_0048dff0	0x19	
+54	Zunft Preismanipulation	ai_ScoreAction	FUN_0048e100	FUN_0048e4b0	0x3	
+55	Zunft Aufruhr	ai_ScoreAction	FUN_0048e500	FUN_0048e660	0x43	
+56	Zunft Level 3	ai_ScoreAction	FUN_0048ed00	FUN_0048edb0	0x4b	
+57	Upgrade Zunft	FUN_0048ee00	FUN_0048eee0	FUN_0048f2d0	0x1b	
+58	Berufsausbildung	FUN_0048f470	FUN_0048f5e0	FUN_0048f7d0	0x1f	
+59	Studium	ai_ScoreAction	FUN_0048f850	FUN_0048fab0	0x13	
+60	Buergermeister Kerker	ai_ScoreAction	FUN_0048c7c0	FUN_0048caf0	0x39	
+61	Graveyard Owner	ai_ScoreAction	FUN_0047eb00	FUN_0047eca0	0x1c3	
+62	Handle Grave	ai_ScoreAction	FUN_0047ed40	FUN_0047f000	0x1	
+63	Use Seance	ai_ScoreAction	FUN_00402da0	FUN_00402da0	0x1	
+64	Build Domizil	ai_ScoreAction	FUN_0047c590	FUN_0047c7e0	0x1c3	
+65	UseSecretRoom	ai_ScoreAction	FUN_0047c8e0	FUN_0047cf20	0x1c3	
+66	UseCannonTower	ai_ScoreAction	FUN_0047d480	FUN_0047d650	0x1c1	
+67	BuildSculpture	ai_ScoreAction	FUN_0047d720	FUN_0047d970	0x3	
+68	Blutrache	ai_ScoreAction	FUN_00499840	FUN_00499b10	0x1c3	
+69	Verfluchen	ai_ScoreAction	FUN_00499c50	FUN_00499e50	0x1c3	
+70	Theater	ai_ScoreAction	FUN_00499f20	FUN_0049a0c0	0x1	
+71	Ehrerbietung	ai_ScoreAction	FUN_0049a160	FUN_0049a2c0	0x3	
+72	UseAlchemistryItems	ai_ScoreAction	FUN_0047da70	FUN_0047de00	0x1c3	

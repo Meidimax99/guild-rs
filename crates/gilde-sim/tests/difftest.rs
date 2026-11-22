@@ -2,6 +2,8 @@
 //! (`re/scripts/difftest.py`, which runs the original functions in an x86
 //! emulator) against the Rust port.
 
+use gilde_formats::ai::{AiAction, AiActions, DriveWeight};
+use gilde_sim::actions::{self, ActionDef, ActionTable, BasicPlanner, Choice, Score, Scoring};
 use gilde_sim::clock::LocalClock;
 use gilde_sim::date::Date;
 use gilde_sim::drives::{Drive, DriveContext, Drives};
@@ -109,4 +111,64 @@ fn ai_schedule_matches_original() {
         assert_eq!(s.last, date(&after["last"]), "vector {n}: last date");
         assert_eq!(s.carry.to_bits(), (after["carry"].as_f64().unwrap() as f32).to_bits(), "vector {n}: carry");
     }
+}
+
+fn weights(v: &Value) -> [DriveWeight; 4] {
+    let a = v.as_array().unwrap();
+    std::array::from_fn(|k| DriveWeight { drive: a[k][0].as_u64().unwrap() as u8, weight: a[k][1].as_f64().unwrap() as f32 })
+}
+
+fn drive_values(v: &Value, activity: u8) -> Drives {
+    let vals: Vec<f32> = v.as_array().unwrap().iter().map(|x| x.as_f64().unwrap() as f32).collect();
+    let mut d = Drives { activity, ..Default::default() };
+    for (k, x) in d.drives.iter_mut().enumerate() {
+        x.value = vals[k];
+    }
+    d.fatigue.value = vals[13];
+    d
+}
+
+#[test]
+fn ai_score_matches_original() {
+    let mut bad = Vec::new();
+    for v in load("ai_score") {
+        let action = ActionDef {
+            id: 1,
+            name: "",
+            scoring: Scoring::Generic,
+            flags: v["flags"].as_u64().unwrap() as u32,
+            short: weights(&v["short"]),
+            long: weights(&v["long"]),
+        };
+        let d = drive_values(&v["values"], v["activity"].as_u64().unwrap() as u8);
+        let s = actions::score(&action, &d, v["mask"].as_u64().unwrap() as u8);
+        let r = &v["result"];
+        let want = Score { short: r["short"].as_f64().unwrap() as f32, long: r["long"].as_f64().unwrap() as f32, usable: r["usable"].as_bool().unwrap() };
+        if s != want {
+            bad.push(format!("ours {s:?}, original {want:?}"));
+        }
+    }
+    assert!(bad.is_empty(), "{} mismatches, e.g.\n{}", bad.len(), bad[..bad.len().min(5)].join("\n"));
+}
+
+#[test]
+fn ai_select_matches_original() {
+    let mut bad = Vec::new();
+    for v in load("ai_select") {
+        let list: Vec<AiAction> = v["weights"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(id, w)| AiAction { id: id.parse().unwrap(), name: String::new(), short: weights(&w[0]), long: weights(&w[1]) })
+            .collect();
+        let table = ActionTable::new(&AiActions { actions: list });
+        let d = drive_values(&v["values"], v["activity"].as_u64().unwrap() as u8);
+        let u = |k: &str| v[k].as_u64().unwrap() as u8;
+        let c = actions::select(&table, &d, u("mask"), u("last"), &mut BasicPlanner);
+        let want = Choice { motive: u("motive"), action: u("action") };
+        if c != want {
+            bad.push(format!("ours {c:?}, original {want:?}"));
+        }
+    }
+    assert!(bad.is_empty(), "{} mismatches, e.g.\n{}", bad.len(), bad[..bad.len().min(5)].join("\n"));
 }

@@ -1,6 +1,7 @@
 //! Game simulation (in progress): calendar, game clock, replicated commands,
-//! character drives, AI scheduling and the runtime world.
+//! character drives, AI scheduling and action choice, and the runtime world.
 
+pub mod actions;
 pub mod ai;
 pub mod clock;
 pub mod command;

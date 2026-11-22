@@ -45,6 +45,12 @@ pub mod kind {
     pub const FILE_CHUNK: u8 = 0x09;
     /// Sell objects (`cm_ExSellObjekt`).
     pub const SELL_OBJECT: u8 = 0x11;
+    /// Add to byte/short/int fields of an object (`cm_ExFieldDelta`):
+    /// object id, count, then (size, count, u16 offset, values).
+    pub const FIELD_DELTA: u8 = 0x16;
+    /// Add to a character's drive values (`cm_ExDriveDelta`), see
+    /// [`crate::actions::DriveDelta`].
+    pub const DRIVE_DELTA: u8 = 0x18;
     /// Game clock tick: set the date, run one simulation step.
     pub const SET_DATE: u8 = 0x1e;
     /// System message, sub-types in [`system`].

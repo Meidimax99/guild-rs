@@ -23,9 +23,9 @@ type	client_request	client_exec	client_name	cm_name	server	meaning	message
 0x13	0x4b2ca0	0x4b5fb0	FUN_004b5fb0		validates (0x1000d520)		
 0x14	0x4b2ce0	0x4b6100	FUN_004b6100		validates (0x1000d670)		
 0x15		0x4b61a0	FUN_004b61a0		validates (0x1000d710)		
-0x16	0x4b2d20	0x4b6210	FUN_004b6210		validates (0x1000d790)		
+0x16	0x4b2d20	0x4b6210	FUN_004b6210	cm_ExFieldDelta	validates (0x1000d790)	add to byte/short/int fields of an object: u32 object id, u8 count, entries (u8 size 1/2/4, u8 count, u16 offset, values); built by cm_BeginFieldDelta 0x4b1f20 / cm_AddFieldDelta 0x4b2080	
 0x17	0x4b2d60	0x4b62f0	FUN_004b62f0		validates (0x1000d870)		
-0x18	0x4b2da0	0x4b63d0	FUN_004b63d0		validates (0x1000d950)		
+0x18	0x4b2da0	0x4b63d0	FUN_004b63d0	cm_ExDriveDelta	validates (0x1000d950)	add to drive values of a character: u32 object id, u8 count, count x (u8 drive 0-13, f32 delta), clamped 0..1000; built by cm_BeginDriveDelta 0x4b21f0 / cm_AddDriveDelta 0x4b2230 (AI action execution)	
 0x19	0x4b2de0	0x4b6490	FUN_004b6490		validates (0x1000da10)		
 0x1a	0x4b2e40	0x4b6550	FUN_004b6550		validates (0x1000dad0)		
 0x1b	0x4b2e80	0x4b65c0	FUN_004b65c0		validates (0x1000db40)		

@@ -3,15 +3,16 @@
 //!
 //! ```text
 //! "nFDa"  u32 count (73)
-//! count × { u8 id, char name[32], 4 × (u8 drive, f32 weight), 4 × (u8 drive, f32 weight) }
+//! count × { u8 id, char name[32], 4 × (u8 drive, f32 weight) short, 4 × (u8 drive, f32 weight) long }
 //! ```
 //!
 //! Each action (buy a residence, apply for an office, sabotage, study, …) is
-//! weighted against the 13 character drives (see `gilde_sim::drives`). The
-//! first list scores how much a character wants the action: the sum of
-//! `weight / k · drive value`, with `k` smaller for the character's current
-//! activity (`FUN_00492e10`); performing it lowers those drives by half the
-//! weight (`FUN_004b2230`). The meaning of the second list is open.
+//! weighted against the 13 character drives (see `gilde_sim::drives`), once
+//! as a short-term and once as a long-term desire (the developer ini
+//! `ai_method_addon.ini` names them `ShortDesire_li_N`/`ShortChange_li_N` and
+//! `LongDesire_li_N`/`LongChange_li_N`). Unused slots have drive `0xff` and
+//! weight 0. The rest of an action (flags, score/target/execute functions) is
+//! registered in code; see `gilde_sim::actions`.
 
 use crate::reader::{Reader, fixed_cstr};
 use crate::{Error, Result};
@@ -28,10 +29,10 @@ pub struct DriveWeight {
 pub struct AiAction {
     pub id: u8,
     pub name: String,
-    /// Drives that motivate the action (zero weights are unused slots).
-    pub motivation: Vec<DriveWeight>,
-    /// Second weight list (open).
-    pub second: Vec<DriveWeight>,
+    /// Short-term desire: (drive, weight) slots; weight 0 = unused.
+    pub short: [DriveWeight; 4],
+    /// Long-term desire.
+    pub long: [DriveWeight; 4],
 }
 
 #[derive(Debug, Clone)]
@@ -48,22 +49,19 @@ impl AiActions {
         r.skip(4)?;
         let n = r.u32()?;
         let mut actions = Vec::with_capacity(n as usize);
-        let list = |r: &mut Reader| -> Result<Vec<DriveWeight>> {
-            let mut v = Vec::new();
-            for _ in 0..4 {
-                let w = DriveWeight { drive: r.u8()?, weight: r.f32()? };
-                if w.weight != 0.0 {
-                    v.push(w);
-                }
+        let list = |r: &mut Reader| -> Result<[DriveWeight; 4]> {
+            let mut v = [DriveWeight { drive: 0xff, weight: 0.0 }; 4];
+            for w in &mut v {
+                *w = DriveWeight { drive: r.u8()?, weight: r.f32()? };
             }
             Ok(v)
         };
         for _ in 0..n {
             let id = r.u8()?;
             let name = fixed_cstr(r.bytes(32)?);
-            let motivation = list(&mut r)?;
-            let second = list(&mut r)?;
-            actions.push(AiAction { id, name, motivation, second });
+            let short = list(&mut r)?;
+            let long = list(&mut r)?;
+            actions.push(AiAction { id, name, short, long });
         }
         if !r.at_end() {
             return Err(Error::Invalid(format!("ai_data: {} trailing bytes", r.remaining())));

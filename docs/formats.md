@@ -145,17 +145,22 @@ Forms describe layout only; the game code adds buttons/lists into the windows.
 
 ## AI action catalogue `gamedata/ai/ai_data_2.dfn`
 
-Loaded by `ai_LoadData` (`0x4832e0`) into 0x94-byte records at `0xfb0080`.
+Loaded by `ai_LoadActions` (`0x4832e0`) into the 0x94-byte action records at
+`0xfb0080`, after the code has registered each action's functions and flags
+(see [`ai_actions.tsv`](ai_actions.tsv) and `gilde_sim::actions`).
 
 ```text
 "nFDa"  u32 count (73)
-count × { u8 id, char name[32], 4 × (u8 drive, f32 weight), 4 × (u8 drive, f32 weight) }
+count × { u8 id, char name[32], 4 × (u8 drive, f32 weight) short-term, 4 × (u8 drive, f32 weight) long-term }
 ```
 
 Each action (buy a residence, apply for an office, sabotage, study, …) is
-weighted against the 13 character drives. The first list scores how much a
-character wants the action (`ai_ScoreAction` `0x492e10`: sum of
-`weight / k · drive value`, `k` smaller for the current activity); performing
-it lowers those drives by half the weight. The second list is open.
+weighted against the 13 character drives, as a short-term and as a long-term
+desire (the developer ini `ai_method_addon.ini`, read instead when
+`0x71d93c` is set, calls them `ShortDesire_li_N`/`ShortChange_li_N` and
+`LongDesire_li_N`/`LongChange_li_N`). Unused slots have drive `0xff` and
+weight 0; record 0 is empty. Negative weights are costs: carrying out the
+action lowers each listed drive by half its weight, so a negative weight
+raises it (most actions list money with a negative weight).
 `alchemy.dfn` (`RmHa`) and `historical.dfn` (`SaFh`) use other layouts.
 Parser: `gilde_formats::ai`.

@@ -208,6 +208,25 @@ logic: prototypes (`A_Geb.dat`, `A_Obj.dat`), buildings and rooms, objects,
 characters (`gm_KillSpieler`, `gm_CreateCharacter`), graveyards, plant maps,
 and a save loader.
 
+### AI work split and shared randomness
+
+Every machine simulates the whole world, but each AI decision is made on
+exactly one machine and then replicated. `ai_CanDecide` (`0x46c200`) lets a
+client decide for a character only if `object id % player count == client
+index` (the count and index come from command `0x20` sub-types 6 and 7;
+single player decides for everyone). A decision does not change the world
+directly: the chosen action's effects are sent as commands — the drive
+changes as `0x18` (`cm_RequestDriveDelta`), field changes of other objects
+as `0x16` (`cm_RequestFieldDelta`: object id, then entries of size 1/2/4,
+count, u16 offset and the values to add) — and every machine applies them
+when the server's copy comes back.
+
+Random numbers come from the C runtime's `rand()` (MSVC linear
+congruential generator; `rnd_Below(n)` `0x427ef0` = `rand() % n`). The seed
+is distributed with command `0x20` (sub-type 0 at the start of a round, and
+sub-type 5), so the code that runs on every machine draws the same numbers.
+The server seeds its own generator from `timeGetTime`.
+
 ### What is replicated and what is not
 
 Replicated: every command (economy, building, character actions, offices,
@@ -216,7 +235,8 @@ crimes, cut-scenes, chat/system messages) and the game clock. Local: the
 boxes of the local player, the command log. Copies of the world therefore
 drift slightly between machines (measured on six players' saves, see
 [`savegame.md`](savegame.md) §6.1); there is no state synchronisation beyond
-the commands. A player who leaves ends the game for everyone
+the commands, and code that uses `rand()` outside the replicated paths
+(UI, sounds, local decisions) shifts the generator. A player who leaves ends the game for everyone
 (`game_Session`: "Ein Spieler hat die Partie verlassen…").
 
 ## 7. Open questions

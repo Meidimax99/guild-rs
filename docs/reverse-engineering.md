@@ -18,7 +18,10 @@ random inputs and records inputs and outputs as JSON in
 them against the port. Covered so far, all matching: `date_Add`,
 `date_MinutesBetween`, `clk_Advance`, `chr_UpdateDrivesOne` (bit-exact),
 `ai_Schedule` (callees stubbed: the recorded visits, decisions and scheduler
-state match).
+state match), `ai_ScoreAction` (bit-exact) and `ai_SelectAction` (on the
+registered action table with random weights; target functions other than
+the `Dummy*` ones replaced by "impossible", as in the port's
+`BasicPlanner`).
 This found two things a reading of the decompile missed: `date_Add`
 truncates (negative inputs leave negative minutes/seconds, a negative hour
 wraps in its 16-bit field), and the game computes with the x87 FPU in 24-bit
@@ -225,7 +228,29 @@ register them) but not ported.
   game minute round-robin (each character once per game hour, 06:00–23:00);
   hourly update `FUN_004787f0`; AI decision `FUN_0046c7d0` between 07:00 and
   22:00 for AI dynasty heads every hour, others every second hour.
-  **Ported** (`gilde_sim::ai`). The decision itself is open.
+  **Ported** (`gilde_sim::ai`).
+* **AI decision** (`ai_Decide` `0x46c7d0`, see `gilde_sim::actions`): for
+  kinds 2–5 that are alive, not suspended (`+0x1cc & 0x3000`) and allowed
+  actions (`+0x1b1 == 0`): staff own workshops, gather contacts
+  (`ai_GatherContacts`), select an action (`ai_SelectAction` `0x483c40`)
+  and carry it out (`ai_ExecuteAction` `0x484150`). The 72 actions are
+  registered in code with a score, a target and an execute function and a
+  flags mask matched against character `+0x218`
+  ([`ai_actions.tsv`](ai_actions.tsv)); `ai_data_2.dfn` supplies short- and
+  long-term drive weights. Selection keeps the best short-term and
+  long-term candidates (generic score `Σ weight/k · drive`, k = 40 for the
+  current activity, else 50), each confirmed by its target function, which
+  returns the action actually carried out (target functions plan: e.g.
+  "ApsSparen" looks for an action that needs action points through
+  `ai_SelectSubAction`); the previous action is excluded unless flagged
+  repeatable (`0x200`). Execution lowers the motive's and the action's
+  short-term drives by half their weights and adds 500 (same action) or 250
+  fatigue, sent as command `0x18`. **Ported**: scoring and selection
+  (checked against the original), execution, the drive-delta command, the
+  target/execute functions of the six `Dummy*` actions. **Open**: the custom
+  score functions (16 actions), the other target/execute functions (they
+  need buildings, offices, objects and relationships), workshop staffing,
+  contacts.
 * **Session loop** (`game_Session`): start of game sets 06:00 and grants starting
   money ((5 − difficulty) × 250, cheat `MO_MONEY` 750 000); per round
   `FUN_00526790` (`RundenBeginn`: per-player round-start events) and

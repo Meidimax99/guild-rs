@@ -74,6 +74,7 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 | `command` | `Command` (0x99-byte record, known types and system sub-types), `Executor` (handler table, transactions, sequence gaps) |
 | `drives` | `Drives`: the 13 drives per character and the activity choice (`chr_UpdateDrives`) |
 | `ai` | `AiScheduler`: which characters get their hourly update and an AI decision each minute (`ai_Schedule`) |
+| `actions` | AI actions: action table (code registration + `ai_data_2.dfn`), scoring, selection, execution, drive-delta command `0x18`, `Planner` trait for the action-specific functions |
 | `notices` | `Notices`: pending notices and their deadlines (`msg_ProcessNotices`, handlers not ported) |
 | `world` | `World`: runtime world built from a city/save, per-minute step (notices, drives, AI scheduling) |
 
@@ -137,6 +138,7 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 | [`savegame.md`](savegame.md) | savegame dynamic state, header, network games |
 | [`architecture.md`](architecture.md) | game architecture: frame loop, commands, clock, networking |
 | [`commands.tsv`](commands.tsv) | the 106 network command types with client and server handlers |
+| [`ai_actions.tsv`](ai_actions.tsv) | the 72 AI actions with their score/target/execute functions and flags |
 | [`notices.tsv`](notices.tsv) | the 167 notice (HE event) types with handlers and message titles |
 | [`esc.md`](esc.md) | ESC language and interpreter |
 | [`esc_api.tsv`](esc_api.tsv) | the 129 script host functions with signatures |
@@ -159,6 +161,7 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 | `scripts/gfx_dump.py` | reference SHAPBANK → PNG decoder |
 | `scripts/split_decomp.py` | split `decomp.c` into per-module files + `index.tsv` |
 | `scripts/difftest.py` | run original functions in an x86 emulator and record test vectors for `gilde-sim` |
+| `scripts/ai_methods.py` | dump the AI action registration table (functions, flags) with the emulator |
 
 ## Outside the repository
 

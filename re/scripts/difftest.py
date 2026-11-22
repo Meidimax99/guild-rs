@@ -49,6 +49,13 @@ AI_NEXT = 0xFB5740
 AI_LAST = 0xFB5744
 AI_CARRY = 0xFB5754
 NET_SOCKET = 0x1470BA0
+AI_SCORE = 0x492E10
+AI_SELECT = 0x483C40
+AI_TABLE = 0xFB0080
+AI_REGISTER = [0x48FB60, 0x47F080, 0x47DFE0, 0x49A330]
+RETURN_ZERO = 0x402DA0
+DUMMY_ACTIONS = (1, 2, 3, 6, 7, 8)
+SCRATCH = RETURN + 0x100
 
 
 def align(x, a=PAGE):
@@ -262,6 +269,91 @@ def ai_schedule_vectors(exe, r, n=150):
     return out
 
 
+def rand_weights(r):
+    out = []
+    for _ in range(4):
+        if r.random() < 0.3:
+            out.append([0xFF, 0.0])
+        else:
+            out.append([r.randint(0, 13), r.choice([r.uniform(-40, 40), float(r.randint(-40, 40))])])
+    return out
+
+
+def write_weights(exe, addr, weights):
+    for i, (d, w) in enumerate(weights):
+        exe.write(addr + 8 * i, "<B", d)
+        exe.write(addr + 8 * i + 4, "<f", w)
+    return [[d, exe.read(addr + 8 * i + 4, "<f")[0]] for i, (d, w) in enumerate(weights)]
+
+
+def write_char_drives(exe, ch, r):
+    values = [r.choice([0.0, 1000.0, r.uniform(0, 1000)]) for _ in range(14)]
+    for i, v in enumerate(values):
+        exe.write(ch + 0x90 + 12 * i, "<f", v)
+    return [exe.read(ch + 0x90 + 12 * i, "<f")[0] for i in range(14)]
+
+
+def ai_score_vectors(exe, r, n=300):
+    out = []
+    ch = G_CHARACTERS + 0x21C * 10
+    for _ in range(n):
+        exe.reset()
+        aid = r.randint(1, 72)
+        rec = AI_TABLE + aid * 0x94
+        short = write_weights(exe, rec + 0x30, rand_weights(r))
+        long = write_weights(exe, rec + 0x70, rand_weights(r))
+        flags = r.choice([0x01, 0x03, 0x19, 0xC9, 0x1C3, 0xFF])
+        exe.write(rec + 0x90, "<I", flags)
+        values = write_char_drives(exe, ch, r)
+        activity = r.randint(0, 12)
+        mask = r.choice([0x01, 0x02, 0x04, 0x08, 0x40, 0x80])
+        exe.write(ch + 0x130, "<B", activity)
+        exe.write(ch + 0x218, "<B", mask)
+        res = exe.call(AI_SCORE, SCRATCH, SCRATCH + 4, aid, ch) & 0xFF
+        s, l = exe.read(SCRATCH, "<ff")
+        out.append({"short": short, "long": long, "flags": flags, "values": values,
+                    "activity": activity, "mask": mask,
+                    "result": {"short": s, "long": l, "usable": bool(res)}})
+    return out
+
+
+def ai_select_vectors(exe, r, n=200):
+    """ai_SelectAction on the registered table with random weights. Only the
+    Dummy* actions have their real target functions; the others get one
+    that returns 0 and custom score functions are removed, which is what
+    the port's BasicPlanner implements."""
+    out = []
+    slot = 10
+    ch = G_CHARACTERS + 0x21C * slot
+    for _ in range(n):
+        exe.reset()
+        for f in AI_REGISTER:
+            exe.call(f, 0)
+        weights = {}
+        for aid in range(1, 73):
+            rec = AI_TABLE + aid * 0x94
+            if exe.read(rec + 0x24, "<I")[0] != AI_SCORE:
+                exe.write(rec + 0x24, "<I", 0)
+            if aid not in DUMMY_ACTIONS:
+                exe.write(rec + 0x28, "<I", RETURN_ZERO)
+            w = rand_weights(r) if r.random() < 0.8 else [[0xFF, 0.0]] * 4
+            short = write_weights(exe, rec + 0x30, w)
+            long = write_weights(exe, rec + 0x70, rand_weights(r) if r.random() < 0.5 else [[0xFF, 0.0]] * 4)
+            weights[aid] = [short, long]
+        values = write_char_drives(exe, ch, r)
+        activity = r.randint(0, 12)
+        mask = r.choice([0x01, 0x01, 0x02, 0x08, 0x40])
+        last = r.choice([0, 0] + list(DUMMY_ACTIONS))
+        exe.write(ch + 0x130, "<B", activity)
+        exe.write(ch + 0x218, "<B", mask)
+        exe.write(ch + 0x132, "<B", last)
+        exe.call(AI_SELECT, slot)
+        out.append({"weights": weights, "values": values, "activity": activity, "mask": mask,
+                    "last": last, "motive": exe.read(ch + 0x131, "<B")[0],
+                    "action": exe.read(ch + 0x132, "<B")[0]})
+    return out
+
+
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
@@ -272,7 +364,8 @@ def main():
     r = random.Random(1419)
     for name, fn in [("date_add", date_add_vectors), ("date_minutes", minutes_vectors),
                      ("drives", drives_vectors), ("clock", clock_vectors),
-                     ("ai_schedule", ai_schedule_vectors)]:
+                     ("ai_schedule", ai_schedule_vectors), ("ai_score", ai_score_vectors),
+                     ("ai_select", ai_select_vectors)]:
         vectors = fn(exe, r)
         path = os.path.join(outdir, f"{name}.json")
         with open(path, "w") as f:
