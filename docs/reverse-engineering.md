@@ -189,13 +189,16 @@ register them) but not ported.
   command to itself. **Mapped**, see [`architecture.md`](architecture.md) §5.
   `game.ini` `speed` also sets the movement time scale `0.25 + speed/160`
   (`0x5c3a70`).
-* **Timed messages**: game actions are records (0x99 bytes, ring of 0x8000)
-  scheduled at a game date (`+0x52`) and dispatched by `msg_DispatchQueue`
-  (`0x52d410`) through 167 handler pairs registered with
-  `msg_RegisterHandler(type, request, execute)` (`0x52bc30`); handlers live in
-  `0x530000`–`0x570000`. The same queue serves multiplayer. **Mapped**; the
-  record type byte does not match the registration index for all records
-  (e.g. type `0x1e`), which is not yet understood.
+* **Notices**: events with a deadline and optional message box (0x14c
+  bytes at `0x726d00`, deadline `+0x52`), 167 types registered with
+  `msg_RegisterHandler(type, request, execute)` (`0x52bc30`, handlers in
+  `0x530000`–`0x570000`); expired ones run every game minute
+  (`msg_ProcessNotices`), open boxes every frame (`msg_DispatchQueue`).
+  **Mapped.** Replicated changes are network commands (0x99-byte records,
+  106 types), see [`architecture.md`](architecture.md) §4.
+* **Drives**: every character has 13 drives (`+0x88` + 12·n: rate, decay,
+  value 0–1000) updated each game minute as `value + rate − decay·value`;
+  the strongest becomes the current activity `+0x130` (`chr_UpdateDrives`).
 * **Session loop** (`game_Session`): start of game sets 06:00 and grants starting
   money ((5 − difficulty) × 250, cheat `MO_MONEY` 750 000); per round
   `FUN_00526790` (`RundenBeginn`: per-player round-start events) and
@@ -282,13 +285,10 @@ Serialised by `amt_LoadAemter`; semantics **open**.
 3. Meaning of light-set entries 1 and 3–5 and of `ambient2`; light objects.
 4. Glyph metric fields `+0x11`/`+0x15` were identified as the ink box; the
    text formatting escape codes are not decoded.
-5. Message record type vs. handler index mismatch: records of type `0x1e`
-   and similar are network commands (106 types, `cm_ExecCommand`), not timed
-   actions; see [`architecture.md`](architecture.md) §4.
-6. Field semantics of the prototype tables, dynasties, markets, offices, and
+5. Field semantics of the prototype tables, dynasties, markets, offices, and
    the remaining character fields (floats `+0x10`–`+0x20`, timers
    `+0x17c`–`+0x19c`, `+0x54`).
-7. The navigation network (`.net` files, same container as `.cty`).
+6. The navigation network (`.net` files, same container as `.cty`).
 
 ## Suggested next steps
 

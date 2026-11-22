@@ -187,3 +187,7 @@
 00427c60	timer_Register	(callback, interval in ticks)
 00427d00	timer_Pause	(callback, 1 = paused)
 004b1d40	cm_Send	queue a command record for the server (or loop back when offline)
+0052d390	msg_ProcessNotices	every game minute: run handlers of notices whose deadline passed
+0046bef0	chr_UpdateDrives	every game minute: update the 13 drives of every character
+0046bf20	chr_UpdateDrivesOne	value += rate - decay*value (0..1000); strongest drive -> activity +0x130
+004e7dd0	eco_MinuteStep	economy value at 0x71d06c follows elapsed time between 07:00 and 21:00

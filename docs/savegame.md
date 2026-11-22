@@ -177,12 +177,11 @@ end of the sample saves.
    date[14], (v ≥ `0x10040`) u32}. 0x114-byte meeting/session records at
    `0x9516e0`.
 7. **`FUN_0050e490`**: u8; u32; u32; 16 bytes; 4 × (u32 + 8 × {u32, u32}).
-8. **`FUN_0050e5a0`: timed message queues**. The records are 0x99 bytes and
+8. **`FUN_0050e5a0`: command pools** (see [`architecture.md`](architecture.md) §4). The records are 0x99 bytes and
    share their layout with `msg_DispatchQueue`. Two links at `+0x91/+0x95`
    are stored as indices and become pointers on load.
-   - 8192 records, u32, u32.
-   - 0x8000 records (0x2000 if v < `0x1003c`), u32, u32. This looks like the
-     network send queue.
+   - 8192 received command records (`0x9629a0`), u32, u32.
+   - 0x8000 sent request records (0x2000 if v < `0x1003c`, `0xa95300`), u32, u32.
    - The same count × 10-byte acknowledgement slots.
    - 5 × u32.
 9. **`FUN_0050e880`** (v ≥ `0x1002e`): u32; 24 × 4 × u32. If v > `0x1004f`,

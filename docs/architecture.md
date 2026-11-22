@@ -70,10 +70,16 @@ offline loop-back mode.
 
 ## 4. Two kinds of events
 
-**Timed actions** (`msg_*`): local records of 0x99 bytes, scheduled at a game
-date and dispatched by `msg_DispatchQueue` (`0x52d410`) through 167 handler
-pairs registered with `msg_RegisterHandler(type, request, execute)`. Ring of
-8192 records; saved in the savegame (dynamic section 8a).
+**Notices** (`msg_*`): events with a deadline, often shown as a message box
+that asks the player for a decision (debt warnings, offers, trials, …).
+Records of 0x14c bytes at `0x726d00` (type byte < `0xa7`, deadline date at
+`+0x52`, flags at `+0x78`); 167 types with handlers registered by
+`msg_RegisterHandler(type, request, execute)` in a table at `0x7847c0`.
+Every game minute `msg_ProcessNotices` (`0x52d390`) runs the handler of each
+notice whose deadline has passed; every frame `msg_DispatchQueue`
+(`0x52d410`) services the open message boxes (pointer list `0x779d00`).
+Notices are saved in the savegame (dynamic section 5); each machine keeps
+the boxes of its own player.
 
 **Network commands** (`cm_*`): records of the same 0x99-byte shape that change
 shared state. 106 types (`0x00`–`0x69`), full table in
@@ -90,18 +96,22 @@ shared state. 106 types (`0x00`–`0x69`), full table in
 | `+0x91`, `+0x95` | queue links (prev, next) |
 
 Types 5 and 6 bracket a transaction of several records that is executed
-together. The client keeps 0x8000 command records plus their acknowledgement
-slots; both are saved in the savegame (dynamic sections 8b, 8c), which is why
-those sections differ completely between players' copies.
+together. The client keeps two record pools: 8192 received commands
+(`0x9629a0`, followed by the sync and sequence counters `0xa949a0`) and
+0x8000 sent requests indexed by request id (`0xa95300`) with their
+acknowledgement slots (`0xf5d320`). All three are saved in the savegame
+(dynamic sections 8a–8c), which is why those sections differ between
+players' copies.
 
 ## 5. Game clock
 
 The simulation advances one step per game minute, driven by command `0x1e`.
 Its client handler `cm_ExSetDate` (`0x4b6c20`) sets `g_date` if the new date
-is later, then runs: the timed-action dispatch, an economy step
-(`FUN_004e7dd0`, plus `FUN_004ec1b0` every 6 minutes), an update for every
-character (`FUN_0046ce00`), the AI scheduler (`FUN_0046c9d0`) and two more
-updates (`FUN_005a8590`, `FUN_0051a500`). Debug toggles at
+is later, then runs: the notice deadlines (`msg_ProcessNotices`), an economy step
+(`FUN_004e7dd0`, plus `FUN_004ec1b0` every 6 minutes), the drives of every
+character (`chr_UpdateDrives` `0x46bef0`), the evaluation of every master
+(`FUN_0046ce00`, "Evaluation von Meister … beginnt"), the AI scheduler
+(`FUN_0046c9d0`) and two more updates (`FUN_005a8590`, `FUN_0051a500`). Debug toggles at
 `0x64d800`/`0x64d804`/`0x64d808` disable parts of it.
 
 Who sends `0x1e`:
