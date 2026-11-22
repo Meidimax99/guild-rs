@@ -4,6 +4,7 @@
 pub mod clock;
 pub mod command;
 pub mod date;
+pub mod drives;
 
 pub use clock::{ClockEvent, LocalClock, ServerClock};
 pub use command::{Command, Executor, Outcome};

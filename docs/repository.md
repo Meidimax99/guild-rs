@@ -70,6 +70,7 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 | `date` | `Date` (round/hour/minute/second, `add`, ordering, season, calendar, 14-byte encoding), `DayPhase` (light set + blend from the seasonal table) |
 | `clock` | `LocalClock` (single-player `clk_Advance`), `ServerClock` (server tick, speed table, end of round) |
 | `command` | `Command` (0x99-byte record, known types and system sub-types), `Executor` (handler table, transactions, sequence gaps) |
+| `drives` | `Drives`: the 13 drives per character and the activity choice (`chr_UpdateDrives`) |
 
 ## `gilde-net`
 

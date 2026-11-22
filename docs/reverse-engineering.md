@@ -199,6 +199,8 @@ register them) but not ported.
 * **Drives**: every character has 13 drives (`+0x88` + 12·n: rate, decay,
   value 0–1000) updated each game minute as `value + rate − decay·value`;
   the strongest becomes the current activity `+0x130` (`chr_UpdateDrives`).
+  Saved values look as expected (rates ≈ 2–3, decays ≈ 0.0025, equilibrium
+  ≈ 1000; employees have no drives). **Ported** (`gilde_sim::drives`).
 * **Session loop** (`game_Session`): start of game sets 06:00 and grants starting
   money ((5 − difficulty) × 250, cheat `MO_MONEY` 750 000); per round
   `FUN_00526790` (`RundenBeginn`: per-player round-start events) and
