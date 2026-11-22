@@ -6,6 +6,7 @@ use gilde_formats::vfs::Vfs;
 use std::path::PathBuf;
 
 mod check;
+mod sim;
 mod export;
 
 #[derive(Parser)]
@@ -52,6 +53,14 @@ enum Cmd {
     Buildings,
     /// Export a BGF mesh to Wavefront OBJ (+MTL, textures copied as BMP).
     Obj { path: String, out_dir: PathBuf },
+    /// Run the ported simulation headless on a city (VFS path or file) or a
+    /// savegame (.SAV, gzip) and report what happens.
+    Sim {
+        path: String,
+        /// Game minutes to simulate.
+        #[arg(long, default_value_t = 120)]
+        minutes: u32,
+    },
     /// Run a game server (what the host's game loads from server.dll), as a
     /// standalone process. Does not need the game directory.
     Server {
@@ -193,6 +202,7 @@ fn main() -> Result<()> {
         }
         Cmd::Tree { path } => check::tree(&vfs, &path),
         Cmd::Server { .. } => unreachable!("handled before opening the game directory"),
+        Cmd::Sim { path, minutes } => sim::run(&vfs, &path, minutes),
         Cmd::Obj { path, out_dir } => export::obj(&vfs, &path, &out_dir),
     }
 }

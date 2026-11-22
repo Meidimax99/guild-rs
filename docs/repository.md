@@ -73,6 +73,7 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 | `command` | `Command` (0x99-byte record, known types and system sub-types), `Executor` (handler table, transactions, sequence gaps) |
 | `drives` | `Drives`: the 13 drives per character and the activity choice (`chr_UpdateDrives`) |
 | `ai` | `AiScheduler`: which characters get their hourly update and an AI decision each minute (`ai_Schedule`) |
+| `world` | `World`: runtime world built from a city/save, per-minute step (drives, AI scheduling) |
 
 ## `gilde-net`
 
@@ -123,6 +124,7 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 | `obj` | export a mesh to Wavefront OBJ |
 | `anim-info` | compare a mesh with an animation |
 | `server [--port] [--players] [--speed]` | run the game server standalone (no game directory needed) |
+| `sim <city or save> [--minutes]` | run the ported simulation headless and report activities and AI visits per hour |
 
 ## `docs/`
 

@@ -5,6 +5,7 @@ license.workspace = true
 version.workspace = true
 
 [dependencies]
+gilde-formats = { path = "../gilde-formats" }
 
 [dev-dependencies]
 serde_json = "1.0.154"

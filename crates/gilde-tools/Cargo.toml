@@ -11,6 +11,7 @@ path = "src/main.rs"
 anyhow.workspace = true
 clap.workspace = true
 env_logger.workspace = true
+flate2 = "1.1.11"
 gilde-esc = { version = "0.1.0", path = "../gilde-esc" }
 gilde-formats = { version = "0.1.0", path = "../gilde-formats" }
 gilde-net = { path = "../gilde-net" }
