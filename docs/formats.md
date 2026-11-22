@@ -142,3 +142,20 @@ Forms describe layout only; the game code adds buttons/lists into the windows.
   35 frames ≈ 1.17 s. The engine tick is 14 ms (`FUN_00427bb0(14)`).
 * Next-frame rule (`FUN_0042b7d0`): flag `0x200` reverse; at `loop_out` wrap to
   `loop_in` unless `0x1000` (continue to the outro) or `0x100` (hold).
+
+## AI action catalogue `gamedata/ai/ai_data_2.dfn`
+
+Loaded by `ai_LoadData` (`0x4832e0`) into 0x94-byte records at `0xfb0080`.
+
+```text
+"nFDa"  u32 count (73)
+count × { u8 id, char name[32], 4 × (u8 drive, f32 weight), 4 × (u8 drive, f32 weight) }
+```
+
+Each action (buy a residence, apply for an office, sabotage, study, …) is
+weighted against the 13 character drives. The first list scores how much a
+character wants the action (`ai_ScoreAction` `0x492e10`: sum of
+`weight / k · drive value`, `k` smaller for the current activity); performing
+it lowers those drives by half the weight. The second list is open.
+`alchemy.dfn` (`RmHa`) and `historical.dfn` (`SaFh`) use other layouts.
+Parser: `gilde_formats::ai`.

@@ -4,6 +4,7 @@
 //! data files. See `docs/formats.md` in the repository root for the byte layouts and
 //! the addresses of the original loader routines.
 
+pub mod ai;
 pub mod baf;
 pub mod bgf;
 pub mod error;

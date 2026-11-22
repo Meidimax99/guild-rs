@@ -26,6 +26,9 @@ fn parsers() -> Vec<(&'static str, ParseFn)> {
         ("ogr", |d| Ok(format!("{:#?}", scene::Group::parse(d)?))),
         ("form", |d| Ok(format!("{:#?}", form::Form::parse(d)?))),
         ("cty", |d| Ok(format!("{:#?}", world::WorldFile::parse(d)?))),
+        // Only the action catalogue is decoded; alchemy.dfn and
+        // historical.dfn use other layouts.
+        ("ai_data_2.dfn", |d| Ok(format!("{:#?}", gilde_formats::ai::AiActions::parse(d)?))),
         ("esc", |d| {
             let src = gilde_formats::reader::decode_cp1252(d);
             Ok(format!("{:#?}", gilde_esc::parse(&src)?))
@@ -39,7 +42,12 @@ pub fn run(vfs: &Vfs, only: Option<&str>, verbose: bool) -> Result<()> {
         if only.is_some_and(|o| !o.eq_ignore_ascii_case(ext)) {
             continue;
         }
-        let paths = vfs.glob("", ext);
+        // An entry with a dot names a file instead of an extension.
+        let paths: Vec<&str> = if ext.contains('.') {
+            vfs.list().into_iter().filter(|p| p.ends_with(&format!("/{ext}"))).collect()
+        } else {
+            vfs.glob("", ext)
+        };
         let mut errors: BTreeMap<String, Vec<&str>> = BTreeMap::new();
         for p in &paths {
             if let Err(e) = vfs.read(p).map_err(anyhow::Error::from).and_then(|d| parse(&d)) {

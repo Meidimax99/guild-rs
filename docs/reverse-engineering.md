@@ -196,7 +196,10 @@ register them) but not ported.
   (`msg_ProcessNotices`), open boxes every frame (`msg_DispatchQueue`).
   **Mapped.** Replicated changes are network commands (0x99-byte records,
   106 types), see [`architecture.md`](architecture.md) §4.
-* **Drives**: every character has 13 drives (`+0x88` + 12·n: rate, decay,
+* **Drives**: every character has 13 drives (action points, health,
+  residence, money, profession, pleasure, reputation, power, education,
+  righteousness, villainy, security, family — named from the AI action
+  catalogue `ai_data_2.dfn`, see [`formats.md`](formats.md)) (`+0x88` + 12·n: rate, decay,
   value 0–1000) updated each game minute as `value + rate − decay·value`;
   the strongest becomes the current activity `+0x130` (`chr_UpdateDrives`).
   Saved values look as expected (rates ≈ 2–3, decays ≈ 0.0025, equilibrium

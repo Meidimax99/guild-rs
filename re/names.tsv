@@ -191,3 +191,5 @@
 0046bef0	chr_UpdateDrives	every game minute: update the 13 drives of every character
 0046bf20	chr_UpdateDrivesOne	value += rate - decay*value (0..1000); strongest drive -> activity +0x130
 004e7dd0	eco_MinuteStep	economy value at 0x71d06c follows elapsed time between 07:00 and 21:00
+004832e0	ai_LoadData	gamedata/ai/ai_data_2.dfn and other AI tables
+00492e10	ai_ScoreAction	weighted drive values for an action (current activity counts more)

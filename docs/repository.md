@@ -46,6 +46,7 @@ future server); `gilde-game` wires everything together.
 | `baf` | vertex animations |
 | `scene` | `.ed3` scenes and `.ogr` groups (object trees, floor, light sets) |
 | `world` | `.cty` city / savegame prefix (world state + embedded scene) |
+| `ai` | AI action catalogue `ai_data_2.dfn` |
 | `gfx` | `.gfx` archive and SHAPBANK sprite decoding |
 | `form` | `.form` UI layouts |
 

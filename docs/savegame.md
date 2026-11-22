@@ -108,9 +108,13 @@ In memory: 0x21c-byte records in an array at `0x79cd40` (`g_characters`,
 | `+0x50` | dynasty id (`0x8000 + n`) |
 | `+0x54` | stored −`0x59a` on disk; `game.ini` `[Network] Wappen` is converted the same way for the joining player (**open**: coat of arms vs. text id) |
 | `+0x5c` | 8 × u32 family links (object ids): spouse first, children from slot 2; a newborn's id is appended to its mother's list. -1 = empty |
+| `+0x88` | 13 drives + fatigue, 12 bytes each (rate, decay, value); `+0x130` current activity (`gilde_sim::drives`) |
 | `+0x164` | profession / master grade (text 304 + n) |
 | `+0x165` | employee job (text 525 + n) |
 | `+0x166`, `+0x169` | offices (text 595 + n: Stadtdiener, Stadtschreiber, …) |
+| `+0x170` | residence (building), 0 = none |
+| `+0x194` | action points |
+| `+0x1e4` | greed factor (scales the money drive) |
 | `+0x20c` | id of the meeting/session (council, court) the character is attending, -1 if none. Stored right after the id in the file. **Not** a network slot |
 
 The characters section also stores `DAT_0071da90`, the **local player's

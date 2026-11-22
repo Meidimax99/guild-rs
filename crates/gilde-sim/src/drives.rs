@@ -13,6 +13,24 @@
 //! (`(2 − fatigue/500) · value`).
 
 pub const DRIVES: usize = 13;
+
+/// Drive meanings, from the action catalogue `ai_data_2.dfn` (its `Dummy*`
+/// and `UseObject (…)` entries) and the suppression rules below.
+pub const DRIVE_NAMES: [&str; DRIVES] = [
+    "action points",     // 0: grows while the character has < 7 action points (+0x194)
+    "health",            // 1: Unversehrtheit; reset unless active
+    "residence",         // 2: Wohnsitz; suppressed once a residence is owned (+0x170)
+    "money",             // 3: rate scaled by the greed factor (+0x1e4)
+    "profession",        // 4: Beruf
+    "pleasure",          // 5: Vergnügen
+    "reputation",        // 6: Ansehen
+    "power",             // 7: offices (Amtsbewerbung, UseAmt)
+    "education",         // 8: Bildung
+    "righteousness",     // 9: Rechtschaffenheit
+    "villainy",          // 10: Gemeinheit
+    "security",          // 11: Sicherheit
+    "family",            // 12: Fortpflanzung / Dynastie
+];
 /// Size of the stored block (`+0x88` … `+0x12f`).
 pub const BLOCK_SIZE: usize = 0xa8;
 pub const MAX_VALUE: f32 = 1000.0;
@@ -33,14 +51,14 @@ impl Drive {
 /// The parts of the character the update looks at besides the drives.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct DriveContext {
-    /// Character `+0x194`: drive 0 only grows while this is below 7.
-    pub f194: i32,
-    /// Character `+0x170`: drive 2 only grows while this is 0 …
-    pub f170: i32,
-    /// … and the character is not a politician (kind 3).
+    /// Character `+0x194`, action points: drive 0 only grows below 7.
+    pub action_points: i32,
+    /// Character `+0x170`, residence: drive 2 only grows without one …
+    pub residence: i32,
+    /// … and if the character is not a politician (kind 3).
     pub kind: u8,
-    /// Character `+0x1e4`: multiplies the rate of drive 3.
-    pub f1e4: f32,
+    /// Character `+0x1e4`, greed: multiplies the rate of drive 3 (money).
+    pub greed: f32,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
@@ -91,9 +109,9 @@ impl Drives {
                 let d = &mut self.drives[i];
                 match i {
                     1 => d.value = 0.0,
-                    0 if ctx.f194 >= 7 => d.value = 0.0,
-                    2 if ctx.f170 != 0 || ctx.kind == 3 => d.value = 0.0,
-                    3 => d.value = d.step(d.rate * ctx.f1e4),
+                    0 if ctx.action_points >= 7 => d.value = 0.0,
+                    2 if ctx.residence != 0 || ctx.kind == 3 => d.value = 0.0,
+                    3 => d.value = d.step(d.rate * ctx.greed),
                     _ => d.value = d.step(d.rate),
                 }
             }
@@ -122,7 +140,7 @@ mod tests {
     use super::*;
 
     fn ctx() -> DriveContext {
-        DriveContext { f194: 0, f170: 0, kind: 0, f1e4: 1.0 }
+        DriveContext { action_points: 0, residence: 0, kind: 0, greed: 1.0 }
     }
 
     #[test]
@@ -157,7 +175,7 @@ mod tests {
         for i in 0..4 {
             d.drives[i] = Drive { rate: 5.0, decay: 0.0, value: 100.0 };
         }
-        d.update(&DriveContext { f194: 7, f170: 1, kind: 0, f1e4: 2.0 });
+        d.update(&DriveContext { action_points: 7, residence: 1, kind: 0, greed: 2.0 });
         assert_eq!(d.drives[0].value, 0.0);
         assert_eq!(d.drives[1].value, 0.0);
         assert_eq!(d.drives[2].value, 0.0);
