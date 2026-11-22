@@ -186,3 +186,4 @@
 00427aa0	timer_Tick	multimedia timer callback: run registered timers, g_tick++
 00427c60	timer_Register	(callback, interval in ticks)
 00427d00	timer_Pause	(callback, 1 = paused)
+004b1d40	cm_Send	queue a command record for the server (or loop back when offline)
