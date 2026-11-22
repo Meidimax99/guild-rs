@@ -79,7 +79,9 @@ Every game minute `msg_ProcessNotices` (`0x52d390`) runs the handler of each
 notice whose deadline has passed; every frame `msg_DispatchQueue`
 (`0x52d410`) services the open message boxes (pointer list `0x779d00`).
 Notices are saved in the savegame (dynamic section 5); each machine keeps
-the boxes of its own player.
+the boxes of its own player. Internally these are "HE" events (`he_Alloc*`,
+`he_Run*`); the types with their handlers and message titles are listed in
+[`notices.tsv`](notices.tsv).
 
 **Network commands** (`cm_*`): records of the same 0x99-byte shape that change
 shared state. 106 types (`0x00`–`0x69`), full table in

@@ -135,6 +135,7 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 | [`savegame.md`](savegame.md) | savegame dynamic state, header, network games |
 | [`architecture.md`](architecture.md) | game architecture: frame loop, commands, clock, networking |
 | [`commands.tsv`](commands.tsv) | the 106 network command types with client and server handlers |
+| [`notices.tsv`](notices.tsv) | the 167 notice (HE event) types with handlers and message titles |
 | [`esc.md`](esc.md) | ESC language and interpreter |
 | [`esc_api.tsv`](esc_api.tsv) | the 129 script host functions with signatures |
 | `repository.md` | this file |
