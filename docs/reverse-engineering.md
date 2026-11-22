@@ -16,7 +16,9 @@ shipped data), **mapped** (understood well enough to describe, not yet ported),
 random inputs and records inputs and outputs as JSON in
 `crates/gilde-sim/tests/data/`; `crates/gilde-sim/tests/difftest.rs` replays
 them against the port. Covered so far, all matching: `date_Add`,
-`date_MinutesBetween`, `clk_Advance`, `chr_UpdateDrivesOne` (bit-exact).
+`date_MinutesBetween`, `clk_Advance`, `chr_UpdateDrivesOne` (bit-exact),
+`ai_Schedule` (callees stubbed: the recorded visits, decisions and scheduler
+state match).
 This found two things a reading of the decompile missed: `date_Add`
 truncates (negative inputs leave negative minutes/seconds, a negative hour
 wraps in its 16-bit field), and the game computes with the x87 FPU in 24-bit

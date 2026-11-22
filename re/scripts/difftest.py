@@ -18,8 +18,8 @@ import random
 import struct
 import sys
 
-from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_MEM_UNMAPPED
-from unicorn.x86_const import UC_X86_REG_ESP, UC_X86_REG_EAX
+from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_MEM_UNMAPPED, UC_HOOK_CODE
+from unicorn.x86_const import UC_X86_REG_ESP, UC_X86_REG_EAX, UC_X86_REG_EIP
 
 PAGE = 0x1000
 STACK = 0x0020_0000
@@ -42,6 +42,13 @@ G_DATE = 0x79CCA0
 CLK_DATE = 0x78A2F0
 CLK_SPEED = 0x71F7C8
 SESSION_FLAGS = 0x71D8D0
+AI_SCHEDULE = 0x46C9D0
+CHR_HOURLY = 0x4787F0
+AI_DECIDE = 0x46C7D0
+AI_NEXT = 0xFB5740
+AI_LAST = 0xFB5744
+AI_CARRY = 0xFB5754
+NET_SOCKET = 0x1470BA0
 
 
 def align(x, a=PAGE):
@@ -96,6 +103,16 @@ class Exe:
         self.uc.reg_write(UC_X86_REG_ESP, sp)
         self.uc.emu_start(addr, RETURN, count=2_000_000)
         return self.uc.reg_read(UC_X86_REG_EAX)
+
+    def stub(self, addr, log):
+        """Replace a cdecl function by "record the first argument, return"."""
+        def hook(uc, address, size, data):
+            esp = uc.reg_read(UC_X86_REG_ESP)
+            ret, arg = struct.unpack("<II", bytes(uc.mem_read(esp, 8)))
+            log.append(arg)
+            uc.reg_write(UC_X86_REG_ESP, esp + 4)
+            uc.reg_write(UC_X86_REG_EIP, ret)
+        self.uc.hook_add(UC_HOOK_CODE, hook, begin=addr, end=addr)
 
     def write(self, addr, fmt, *values):
         self.uc.mem_write(addr, struct.pack(fmt, *values))
@@ -194,6 +211,57 @@ def clock_vectors(exe, r, n=200):
     return out
 
 
+def ai_schedule_vectors(exe, r, n=150):
+    hourly, decide = [], []
+    exe.stub(CHR_HOURLY, hourly)
+    exe.stub(AI_DECIDE, decide)
+    out = []
+    for _ in range(n):
+        exe.reset()
+        hourly.clear()
+        decide.clear()
+        kinds = [r.choice([None, None, 0, 1, 5, 6, 7, 8, 20]) for _ in range(0x300)]
+        for slot, k in enumerate(kinds):
+            base = G_CHARACTERS + 0x21C * slot
+            exe.write(base, "<H", 0xFFFF if k is None else slot)
+            exe.write(base + 2, "<B", 0 if k is None else k)
+            exe.write(base + 0x24, "<i", 0)      # no hourly field command
+            exe.write(base + 0x1CC, "<I", 0)
+        exe.write(NET_SOCKET, "<i", -1)          # offline: every character is local
+        last = rand_date(r)
+        last[0] = r.randint(1, 50)
+        now = list(last)
+        step = r.choice([0, 1, 1, 2, 5, 17, 59, 60, 61, 90, 200, 24 * 60])
+        now[2] += step
+        now[1] += now[2] // 60
+        now[2] %= 60
+        now[0] += now[1] // 24
+        now[1] %= 24
+        nxt = r.randint(0, 0x2FF)
+        carry = r.choice([0.0, r.random()])
+        flags = r.choice([0x01, 0x05, 0x89])
+        exe.write(AI_NEXT, "<i", nxt)
+        exe.write(AI_LAST, DATE_FMT, *last)
+        exe.write(AI_CARRY, "<f", carry)
+        carry = exe.read(AI_CARRY, "<f")[0]
+        exe.write(G_DATE, DATE_FMT, *now)
+        exe.write(SESSION_FLAGS, "<I", flags)
+        exe.call(AI_SCHEDULE)
+        slot_of = lambda a: (a - G_CHARACTERS) // 0x21C
+        out.append({
+            "kinds": [-1 if k is None else k for k in kinds],
+            "last": last, "now": now, "next": nxt, "carry": carry, "flags": flags,
+            "hourly": [slot_of(a) for a in hourly],
+            "decide": [slot_of(a) for a in decide],
+            "after": {
+                "next": exe.read(AI_NEXT, "<i")[0],
+                "last": list(exe.read(AI_LAST, DATE_FMT)),
+                "carry": exe.read(AI_CARRY, "<f")[0],
+            },
+        })
+    return out
+
+
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
@@ -203,7 +271,8 @@ def main():
     os.makedirs(outdir, exist_ok=True)
     r = random.Random(1419)
     for name, fn in [("date_add", date_add_vectors), ("date_minutes", minutes_vectors),
-                     ("drives", drives_vectors), ("clock", clock_vectors)]:
+                     ("drives", drives_vectors), ("clock", clock_vectors),
+                     ("ai_schedule", ai_schedule_vectors)]:
         vectors = fn(exe, r)
         path = os.path.join(outdir, f"{name}.json")
         with open(path, "w") as f:

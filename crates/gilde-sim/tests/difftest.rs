@@ -85,3 +85,28 @@ fn local_clock_matches_original() {
         assert_eq!(c.date, date(&v["result"]), "{v}");
     }
 }
+
+#[test]
+fn ai_schedule_matches_original() {
+    use gilde_sim::ai::AiScheduler;
+    let vectors = load("ai_schedule");
+    for (n, v) in vectors.iter().enumerate() {
+        let kinds: Vec<i64> = v["kinds"].as_array().unwrap().iter().map(|k| k.as_i64().unwrap()).collect();
+        let mut s = AiScheduler {
+            next: v["next"].as_u64().unwrap() as usize,
+            last: date(&v["last"]),
+            carry: v["carry"].as_f64().unwrap() as f32,
+        };
+        let special = v["flags"].as_u64().unwrap() & 0x80 != 0;
+        let visits = s.step(&date(&v["now"]), special, |slot| (kinds[slot] >= 0).then_some(kinds[slot] as u8));
+        let hourly: Vec<u64> = visits.iter().map(|x| x.slot as u64).collect();
+        let decide: Vec<u64> = visits.iter().filter(|x| x.decide).map(|x| x.slot as u64).collect();
+        let want = |k: &str| -> Vec<u64> { v[k].as_array().unwrap().iter().map(|x| x.as_u64().unwrap()).collect() };
+        assert_eq!(hourly, want("hourly"), "vector {n}: visited slots (now {}, last {})", v["now"], v["last"]);
+        assert_eq!(decide, want("decide"), "vector {n}: decisions");
+        let after = &v["after"];
+        assert_eq!(s.next as u64, after["next"].as_u64().unwrap(), "vector {n}: next slot");
+        assert_eq!(s.last, date(&after["last"]), "vector {n}: last date");
+        assert_eq!(s.carry.to_bits(), (after["carry"].as_f64().unwrap() as f32).to_bits(), "vector {n}: carry");
+    }
+}
