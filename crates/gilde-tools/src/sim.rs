@@ -35,10 +35,18 @@ fn show(m: &BTreeMap<u8, usize>) -> String {
 }
 
 pub fn run(vfs: &Vfs, path: &str, minutes: u32) -> Result<()> {
-    let file = WorldFile::parse(&load(vfs, path)?)?;
+    let data = load(vfs, path)?;
+    let file = WorldFile::parse(&data)?;
     let mut world = World::from_file(&file);
+    world.notices = gilde_sim::notices::Notices::from_saved(gilde_formats::savegame::notices(&data, &file)?);
     let alive = world.characters.iter().flatten().filter(|c| c.life != 0).count();
-    println!("{path}: {} {:02}:{:02}, {alive} living characters", world.date.year(), world.date.hour, world.date.minute);
+    println!(
+        "{path}: {} {:02}:{:02}, {alive} living characters, {} pending notices",
+        world.date.year(),
+        world.date.hour,
+        world.date.minute,
+        world.notices.pending.len()
+    );
     // Single-player clock at speed 40: one tick command per timer call.
     let mut clock = LocalClock::new(world.date, 40);
     let period = LOCAL_CLOCK_TICKS * TIMER_MS;
@@ -57,6 +65,10 @@ pub fn run(vfs: &Vfs, path: &str, minutes: u32) -> Result<()> {
             break;
         };
         if let Some(r) = world.step(tick) {
+            for (kind, slot) in &r.notices_due {
+                let who = world.character(*slot as usize).map(|c| c.name.as_str()).unwrap_or("?");
+                println!("{:02}:{:02}  notice type {kind:#04x} due for {who} (handler not ported)", world.date.hour, world.date.minute);
+            }
             changes += r.activity_changes.len();
             visits += r.visits.len();
             decisions += r.visits.iter().filter(|v| v.decide).count();

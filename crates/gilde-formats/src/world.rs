@@ -344,6 +344,9 @@ pub struct WorldFile {
     pub scene: Option<Scene>,
     /// Offset where the city part ends (the rest is savegame-only state).
     pub tail_offset: usize,
+    /// End of the embedded scene: start of the savegame-only dynamic state
+    /// (equals the data length for cities and `.SRV` snapshots).
+    pub dynamic_offset: usize,
 }
 
 fn arr<const N: usize>(r: &mut Reader) -> Result<[u8; N]> {
@@ -772,7 +775,12 @@ impl WorldFile {
         let (markets, cities) = read_markets(&mut r, v)?;
         let offices = if v >= 0x10045 { read_offices(&mut r, v)? } else { Vec::new() };
         let scene_start = r.pos();
-        let scene = if header.is_city() { Some(Scene::parse(&data[scene_start..])?) } else { None };
+        let (scene, scene_len) = Scene::parse_prefix(&data[scene_start..])?;
+        let dynamic_offset = scene_start + scene_len;
+        if header.is_city() && dynamic_offset != data.len() {
+            return Err(Error::Invalid(format!("{} bytes after the embedded scene", data.len() - dynamic_offset)));
+        }
+        let scene = Some(scene);
         Ok(WorldFile {
             header,
             globals,
@@ -786,6 +794,7 @@ impl WorldFile {
             offices,
             scene,
             tail_offset: scene_start,
+            dynamic_offset,
         })
     }
 }

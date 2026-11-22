@@ -418,6 +418,16 @@ fn read_floor(r: &mut Reader, v: Ver) -> Result<Floor> {
 
 impl Scene {
     pub fn parse(data: &[u8]) -> Result<Self> {
+        let (s, used) = Self::parse_prefix(data)?;
+        if used != data.len() {
+            return Err(Error::Invalid(format!("scene: {} trailing bytes", data.len() - used)));
+        }
+        Ok(s)
+    }
+
+    /// Parse a scene at the start of `data` (embedded in a city/savegame);
+    /// returns the scene and the bytes it occupies.
+    pub fn parse_prefix(data: &[u8]) -> Result<(Self, usize)> {
         let mut r = Reader::new(data);
         let v = read_version(&mut r)?;
         if v < 0x0b {
@@ -458,10 +468,7 @@ impl Scene {
         if v > 0xa6 {
             s.properties = read_props(&mut r)?;
         }
-        if !r.at_end() {
-            return Err(Error::Invalid(format!("scene: {} trailing bytes", r.remaining())));
-        }
-        Ok(s)
+        Ok((s, r.pos()))
     }
 
     pub fn walk(&self) -> impl Iterator<Item = &SceneObject> {

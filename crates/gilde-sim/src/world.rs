@@ -2,14 +2,15 @@
 //! and the per-minute step (`cm_ExSetDate` `0x4b6c20`, see
 //! `docs/architecture.md` §5).
 //!
-//! Ported so far: the character drives (`chr_UpdateDrives`) and the AI
-//! scheduling (`ai_Schedule`). The other parts of the step (notices, economy,
-//! master evaluation, the AI decision itself, the hourly character update)
-//! are reported but not executed yet.
+//! Ported so far: notice deadlines (`msg_ProcessNotices`, handlers not yet),
+//! the character drives (`chr_UpdateDrives`) and the AI scheduling
+//! (`ai_Schedule`). The other parts of the step (economy, master evaluation,
+//! the AI decision itself, the hourly character update) are not executed yet.
 
 use crate::ai::{AiScheduler, SLOTS, Visit};
 use crate::date::Date;
 use crate::drives::{DriveContext, Drives};
+use crate::notices::Notices;
 use gilde_formats::world::WorldFile;
 
 #[derive(Debug, Clone)]
@@ -38,6 +39,8 @@ pub struct StepReport {
     pub activity_changes: Vec<(u16, u8)>,
     /// Characters visited by the AI scheduler.
     pub visits: Vec<Visit>,
+    /// Notices whose deadline passed: (type, character slot).
+    pub notices_due: Vec<(u8, u16)>,
 }
 
 #[derive(Debug, Clone)]
@@ -46,6 +49,7 @@ pub struct World {
     /// Character slots (`g_characters`, 768).
     pub characters: Vec<Option<SimCharacter>>,
     pub ai: AiScheduler,
+    pub notices: Notices,
     /// Session mode flags (`0x71d8d0`); bit `0x80` disables AI decisions.
     pub session_flags: u32,
 }
@@ -75,7 +79,13 @@ impl World {
         }
         let d = &file.globals.date;
         let date = Date::from_bytes(d).unwrap_or_default();
-        World { date, characters, ai: AiScheduler { last: date, ..Default::default() }, session_flags: 0x01 }
+        World {
+            date,
+            characters,
+            ai: AiScheduler { last: date, ..Default::default() },
+            notices: Notices::default(),
+            session_flags: 0x01,
+        }
     }
 
     pub fn character(&self, slot: usize) -> Option<&SimCharacter> {
@@ -90,6 +100,8 @@ impl World {
         }
         self.date = date;
         let mut report = StepReport::default();
+        // msg_ProcessNotices.
+        report.notices_due = self.notices.process(&date);
         // chr_UpdateDrives: every character.
         for c in self.characters.iter_mut().flatten() {
             let ctx = c.drive_context();

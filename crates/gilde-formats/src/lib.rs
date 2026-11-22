@@ -13,6 +13,7 @@ pub mod gfx;
 pub mod proto;
 pub mod reader;
 pub mod res;
+pub mod savegame;
 pub mod scene;
 pub mod text;
 pub mod vfs;

@@ -6,6 +6,7 @@ pub mod clock;
 pub mod command;
 pub mod date;
 pub mod drives;
+pub mod notices;
 pub mod world;
 
 pub use clock::{ClockEvent, LocalClock, ServerClock};

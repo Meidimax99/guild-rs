@@ -47,6 +47,7 @@ future server); `gilde-game` wires everything together.
 | `scene` | `.ed3` scenes and `.ogr` groups (object trees, floor, light sets) |
 | `world` | `.cty` city / savegame prefix (world state + embedded scene) |
 | `ai` | AI action catalogue `ai_data_2.dfn` |
+| `savegame` | savegame dynamic state: sections 1–5 up to the pending notices |
 | `gfx` | `.gfx` archive and SHAPBANK sprite decoding |
 | `form` | `.form` UI layouts |
 
@@ -73,7 +74,8 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 | `command` | `Command` (0x99-byte record, known types and system sub-types), `Executor` (handler table, transactions, sequence gaps) |
 | `drives` | `Drives`: the 13 drives per character and the activity choice (`chr_UpdateDrives`) |
 | `ai` | `AiScheduler`: which characters get their hourly update and an AI decision each minute (`ai_Schedule`) |
-| `world` | `World`: runtime world built from a city/save, per-minute step (drives, AI scheduling) |
+| `notices` | `Notices`: pending notices and their deadlines (`msg_ProcessNotices`, handlers not ported) |
+| `world` | `World`: runtime world built from a city/save, per-minute step (notices, drives, AI scheduling) |
 
 ## `gilde-net`
 
