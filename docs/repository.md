@@ -77,6 +77,7 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 |---|---|
 | `server` | `Server`: transport-independent game server (handshake, lobby, client indices, validation through an `Authority`, echo and broadcast, game clock, timeouts) |
 | `frame` | wire framing and stream `Decoder` |
+| `tcp` | `ServerHandle` (server thread over TCP, UDP lobby announcement), `Client` |
 
 ## `gilde-ui`
 
@@ -118,6 +119,7 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 | `gfx-check`, `gfx-png`, `gfx-sheet` | validate and export 2D graphics |
 | `obj` | export a mesh to Wavefront OBJ |
 | `anim-info` | compare a mesh with an animation |
+| `server [--port] [--players] [--speed]` | run the game server standalone (no game directory needed) |
 
 ## `docs/`
 

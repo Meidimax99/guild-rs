@@ -792,6 +792,8 @@ dependencies = [
  "env_logger",
  "gilde-esc",
  "gilde-formats",
+ "gilde-net",
+ "gilde-sim",
  "glam",
  "image",
  "log",

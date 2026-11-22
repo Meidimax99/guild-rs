@@ -52,11 +52,36 @@ enum Cmd {
     Buildings,
     /// Export a BGF mesh to Wavefront OBJ (+MTL, textures copied as BMP).
     Obj { path: String, out_dir: PathBuf },
+    /// Run a game server (what the host's game loads from server.dll), as a
+    /// standalone process. Does not need the game directory.
+    Server {
+        /// TCP port (game.ini [Network] Port).
+        #[arg(long, default_value_t = gilde_net::server::DEFAULT_PORT)]
+        port: u16,
+        /// Number of players to wait for.
+        #[arg(long, default_value_t = 2)]
+        players: usize,
+        /// Game speed 0..=4 (default 2 = 770 ms per game minute).
+        #[arg(long, default_value_t = 2)]
+        speed: u32,
+        /// Round to start in (year = 1400 + round).
+        #[arg(long, default_value_t = 0)]
+        round: i32,
+    },
 }
 
 fn main() -> Result<()> {
     env_logger::init();
     let cli = Cli::parse();
+    if let Cmd::Server { port, players, speed, round } = cli.cmd {
+        let mut server = gilde_net::Server::new(players, gilde_sim::Date::start_of_round(round), gilde_net::AcceptAll);
+        server.clock.set_speed(speed);
+        let handle = gilde_net::ServerHandle::spawn(port, server)?;
+        println!("Waiting for {players} Connection(s) on {}", handle.addr);
+        loop {
+            std::thread::park();
+        }
+    }
     let game = cli.game.or_else(gilde_formats::vfs::find_game_dir).context("game directory not found: pass --game <dir> or set GILDE_DIR")?;
     let vfs = Vfs::open_game_dir(&game)?;
     match cli.cmd {
@@ -167,6 +192,7 @@ fn main() -> Result<()> {
             Ok(())
         }
         Cmd::Tree { path } => check::tree(&vfs, &path),
+        Cmd::Server { .. } => unreachable!("handled before opening the game directory"),
         Cmd::Obj { path, out_dir } => export::obj(&vfs, &path, &out_dir),
     }
 }

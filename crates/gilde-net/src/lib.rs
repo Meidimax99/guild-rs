@@ -3,5 +3,7 @@
 
 pub mod frame;
 pub mod server;
+pub mod tcp;
 
 pub use server::{AcceptAll, Authority, Server, ServerEvent};
+pub use tcp::{Client, ServerHandle};

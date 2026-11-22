@@ -13,6 +13,8 @@ clap.workspace = true
 env_logger.workspace = true
 gilde-esc = { version = "0.1.0", path = "../gilde-esc" }
 gilde-formats = { version = "0.1.0", path = "../gilde-formats" }
+gilde-net = { path = "../gilde-net" }
+gilde-sim = { path = "../gilde-sim" }
 glam.workspace = true
 image = { version = "0.25.10", default-features = false, features = ["png"] }
 log.workspace = true
