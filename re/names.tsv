@@ -144,3 +144,31 @@
 00620280	g_time_scale
 0051ebc0	ui_AdvanceGame	fast-forward screen (time scale 4.9375)
 004d2250	cut_Execute	cutscene main function
+# --- savegames, network games (see docs/savegame.md)
+00401000	crc_Checksum	checksum over a buffer (header checksum for network saves)
+0050abc0	sv_Read	fread wrapper used by every section loader
+00507760	sv_WriteHeader	header: city, date, owner identity, player checksums, thumbnail, save name
+00508750	sv_SaveCharacters	characters section incl. local player slot
+0050de20	sv_LoadNotices	pending notices / message boxes (0x726d00)
+0050e5a0	sv_LoadMessageQueues	timed messages (8192) + network command log (0x8000) + acks
+0050cb90	sv_LoadActors	3D actors and activity records
+0050c9e0	sv_LoadActor	one 3D actor record
+0052c810	msgbox_Free	remove a notice / message box
+005c55c0	net_SaveGame	every machine: exchange header checksums, write own NAME.SRV/.SAV
+00521130	menu_SearchNetwork	join browser; lists saved games only if the local copy matches
+00520e00	net_HostLoadGame	host: read own header, wait for header human count
+005783a0	menu_NetLobby	lobby; identity from [Network] in game.ini or the local save header
+004ff040	net_StartNewGame	host streams the city file, clients receive it
+004ff4c0	net_StartSavedGame	every machine loads its own local .SAV
+0050ecc0	ls_SendGame	stream a file in 0x80-byte chunks
+0050ee10	ls_ReceiveGame	load a world from the received buffer
+0051dfd0	sv_NetworkSync	barrier: wait for all machines
+00527c60	gm_PlayerLeftToAI	turn a departed human's character into an AI one (kind 5, new name)
+00527eb0	gm_LocalPlayerDeath	local player died: succession / game over
+00529910	gm_FindLocalPlayer	local player = character with kind 6
+004f1e30	gm_KillSpieler	kill a player character (kind 15)
+004f5860	gm_CreateCharacter	allocate and initialise a character (playermode = kind)
+004d3ab0	dbg_CharacterLine	tab-separated debug dump of a character (decodes text fields)
+004f8810	gm_CharacterWealth	cash plus possessions of a character
+0046cc60	ai_IsLocalCharacter	process this character on this machine (network split)
+0046cd20	ai_IsLocalEmployee	same for employees of a character

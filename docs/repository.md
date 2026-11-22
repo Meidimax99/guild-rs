@@ -115,6 +115,7 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 |---|---|
 | [`reverse-engineering.md`](reverse-engineering.md) | progress, address map, decoded records, open questions |
 | [`formats.md`](formats.md) | file format reference |
+| [`savegame.md`](savegame.md) | savegame dynamic state, header, network games |
 | [`esc.md`](esc.md) | ESC language and interpreter |
 | [`esc_api.tsv`](esc_api.tsv) | the 129 script host functions with signatures |
 | `repository.md` | this file |

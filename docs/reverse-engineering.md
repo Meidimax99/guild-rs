@@ -162,8 +162,9 @@ register them) but not ported.
   objects (`FUN_004f7f00` → `FUN_004f69c0(object category, 100)`). Object record:
   byte 0 item category, name at +1 (32 bytes), values at +0x21… (open).
 * City/savegame loader `sv_LoadWorld` (`0x50abf0`): all city sections parsed
-  and verified (see [`formats.md`](formats.md)); savegame-only sections after
-  the offices (≈15 loaders, `0x4e0d00`…`0x4ae3c0`) **located**.
+  and verified (see [`formats.md`](formats.md)); the savegame-only dynamic
+  state (17 loaders, `0x4e0d00`…`0x4ae3c0`) is transcribed in
+  [`savegame.md`](savegame.md) §5; sections 1–5 verified on real saves.
 * Instance types with extra data: `0x1e` forest (64-cell plant map), `H/I/J`
   graveyards (graves and zombies, counts per tier at `0x6181f0`/`0x618200`),
   `K/L/M` residences (`ahm` info).
@@ -198,9 +199,16 @@ register them) but not ported.
 Miles (`AIL_*`) wrappers at `0x424a00`; music tracks in `msx/`, effects in
 `sfx/`, sample banks loaded by scripts.
 
-### Networking — open
+### Networking — save/join/load mapped, transport open
 
-`server/server.dll`, `nt_*` routines; messages are already network-serialised.
+Every machine runs the full simulation and saves its own copy of a network
+game; a player rejoins with that local copy, and the lobby matches copies by
+a checksum list in the header. The local player is the kind-6 character;
+other humans are kind 7; AI characters are distributed over the machines by
+`object id % player count`. Details in [`savegame.md`](savegame.md) §6
+(`net_SaveGame` `0x5c55c0`, join browser `0x521130`, lobby `0x5783a0`,
+`net_StartSavedGame` `0x4ff4c0`, `ls_SendGame`/`ls_ReceiveGame`).
+The transport (`nt_*`, `server/server.dll`) is **open**.
 
 ## Decoded record layouts
 
@@ -213,23 +221,32 @@ offset (`fXX`).
 | Offset | Type | Meaning | Evidence |
 |---|---|---|---|
 | `+0x00` | u16 | index (0xffff = free) | loops over the array |
-| `+0x02` | u8 | kind: 6 = human player, 7 = AI player?, 5 = family member? | session loop, round start |
-| `+0x04` | u32 | unique id (used in messages, `FUN_004f3fc0` looks it up) | many |
-| `+0x09` | u8 | female (selects female text variants) | tooltip `0x577140` |
-| `+0x0d` | u8 | title/estate (text `0x114 + n`, +10 female) | tooltip |
-| `+0x54` | u32 | first-name text id (stored −0x59a on disk) | loader, WinMain |
-| `+0x5c` | u32 | spouse id | tooltip "Stand" |
+| `+0x02` | u8 | kind: 0 NPC, 1/2 employees, 3 politician, 5 AI dynasty head, 6 human on this machine, 7 human on another machine, 8 family, 15 dead | `FUN_00529910`, `net_SaveGame`, `ai_IsLocalCharacter`, `gm_KillSpieler` |
+| `+0x04` | u32 | unique object id (used in messages, `FUN_004f3fc0` looks it up) | many |
+| `+0x08` | u8 | life, 100 at creation, 0 = dead | `gm_CreateCharacter`, `gm_KillSpieler` |
+| `+0x09` | u8 | gender (text 1161 + n; selects female text variants) | `dbg_CharacterLine`, tooltip `0x577140` |
+| `+0x0a` | u16 | age | `dbg_CharacterLine` |
+| `+0x0c` | u8 | religion (text 1158 + n) | `dbg_CharacterLine` |
+| `+0x0d` | u8 | rank/estate (text `0x114 + n`, +10 female) | tooltip, `dbg_CharacterLine` |
+| `+0x30`, `+0x40` | char[16] | first and last name | loader, savegame header |
+| `+0x50` | u16 | dynasty id (`0x8000 + n`) | dynasty table |
+| `+0x54` | u32 | stored −0x59a on disk; the lobby converts `[Network] Wappen` the same way | loader, `menu_NetLobby` |
+| `+0x5c` | 8 × u32 | family links: spouse, ?, children (object ids, newborns appended to the mother) | tooltip "Stand", sample saves |
 | `+0x164` | u8 | profession (text `0x130 + n`, +0x5f female) | tooltip "Beruf" |
+| `+0x165` | u8 | employee job (text 525 + n) | `dbg_CharacterLine` |
 | `+0x166` | u8 | office (text `0x253 + n`, +0x28 female) | tooltip "Ämter" |
 | `+0x169` | u8 | second office | tooltip |
 | `+0x18c` | u32 | family-name text id (stored −0x639 on disk) | loader |
 | `+0x1cc` | u32 | flags; bits `0x200`–`0x2000` special offices, `0x100000`/`0x200000` round-start events | tooltip, round start |
-| `+0x20c` | i32 | id of an associated object (−1 = none) | loader |
+| `+0x20c` | i32 | meeting/session the character attends (−1 = none) | `FUN_004d3160` |
 
 Age (`FUN_004f4000`) and wealth (`FUN_004f8810`) are computed, not stored
 directly.
 
 ### Building instance — 0xa9 bytes, `g_geb_inst` `*0x8b6134`
+
+`+0x27` (u16): owner character slot, `0xffff` = none (players own their
+residence and business; checked on sample saves).
 
 `+0` prototype index, `+1` id, `+5` name (32 bytes, `~` = soft hyphen),
 `+0x5a` u16 flags (bit `0x40` set while a timed action is pending),
@@ -257,7 +274,9 @@ Serialised by `amt_LoadAemter`; semantics **open**.
 5. Glyph metric fields `+0x11`/`+0x15` were identified as the ink box; the
    text formatting escape codes are not decoded.
 6. Message record type vs. handler index mismatch.
-7. Field semantics of the prototype tables, dynasties, markets, offices.
+7. Field semantics of the prototype tables, dynasties, markets, offices, and
+   the remaining character fields (floats `+0x10`–`+0x20`, timers
+   `+0x17c`–`+0x19c`, `+0x54`).
 8. The navigation network (`.net` files, same container as `.cty`).
 
 ## Suggested next steps
