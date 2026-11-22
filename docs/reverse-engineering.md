@@ -9,6 +9,13 @@ Status legend: **done** (understood and implemented in Rust, verified against
 shipped data), **mapped** (understood well enough to describe, not yet ported),
 **located** (entry points known, internals not analysed), **open** (not started).
 
+## Coverage
+
+The executable has 6496 functions after a function search over the uncovered
+code (`re/ghidra_scripts/FindFunctions.java`), covering 97.9 % of `.text`
+(77 % before). `server/server.dll` (729 functions) is decompiled into
+`re-out/server/`.
+
 ## Decompiled source
 
 The complete decompiled C (Ghidra output, all ~4800 functions, with every name
@@ -175,10 +182,13 @@ register them) but not ported.
   1400 + round, `round & 3` = season), `u16 hour @4`, `u32 minute @6`,
   `u32 second @10`. `date_Add` `0x4ec320`, compare `0x4ec3f0`, calendar
   `0x4ec4a0`. Days start at 06:00. **Ported** (`gilde-sim`).
-* **Clock rate**: the real-time rate at which `g_date` advances was not found.
-  `game.ini` `speed` becomes a time scale `0.25 + speed/160` (`0x5c3a70`,
-  global `0x620280`), which demonstrably scales character movement; the
-  fast-forward screen sets it to 4.9375. **Open.**
+* **Clock**: driven by network command `0x1e` (one simulation step per game
+  minute). In network games the server sends it (770 ms per game minute at
+  default speed); in single player `clk_Advance` adds
+  `(speed × 0.00625 + 0.5) × 100` game seconds per real second and sends the
+  command to itself. **Mapped**, see [`architecture.md`](architecture.md) §5.
+  `game.ini` `speed` also sets the movement time scale `0.25 + speed/160`
+  (`0x5c3a70`).
 * **Timed messages**: game actions are records (0x99 bytes, ring of 0x8000)
   scheduled at a game date (`+0x52`) and dispatched by `msg_DispatchQueue`
   (`0x52d410`) through 167 handler pairs registered with
@@ -267,25 +277,26 @@ Serialised by `amt_LoadAemter`; semantics **open**.
 
 ## Open questions
 
-1. Real-time rate of the game clock and where `g_date` is advanced.
-2. Exact animation time unit (30 fps inferred) and how the time scale applies.
-3. Seasonal texture substitution for vegetation.
-4. Meaning of light-set entries 1 and 3–5 and of `ambient2`; light objects.
-5. Glyph metric fields `+0x11`/`+0x15` were identified as the ink box; the
+1. Exact animation time unit (30 fps inferred) and how the time scale applies.
+2. Seasonal texture substitution for vegetation.
+3. Meaning of light-set entries 1 and 3–5 and of `ambient2`; light objects.
+4. Glyph metric fields `+0x11`/`+0x15` were identified as the ink box; the
    text formatting escape codes are not decoded.
-6. Message record type vs. handler index mismatch.
-7. Field semantics of the prototype tables, dynasties, markets, offices, and
+5. Message record type vs. handler index mismatch: records of type `0x1e`
+   and similar are network commands (106 types, `cm_ExecCommand`), not timed
+   actions; see [`architecture.md`](architecture.md) §4.
+6. Field semantics of the prototype tables, dynasties, markets, offices, and
    the remaining character fields (floats `+0x10`–`+0x20`, timers
    `+0x17c`–`+0x19c`, `+0x54`).
-8. The navigation network (`.net` files, same container as `.cty`).
+7. The navigation network (`.net` files, same container as `.cty`).
 
 ## Suggested next steps
 
 1. Decode the remaining character and building fields through the info panels
    (`panel_infopanel_gebaeude`, character book forms), adding names to
    `re/names.tsv`.
-2. Find the clock advance (search the message handlers and the
-   `0x20000`-flag periodic functions `0x4b1a00`, `0x4b2350`, `0x4b2510`).
+2. Name the `cm_Ex*` command handlers and decode their payloads
+   ([`commands.tsv`](commands.tsv)).
 3. Port the timed message queue and the first handlers (time, building
    purchase, production) into `gilde-sim`.
 4. Wire `gilde-esc` to engine host functions so location scripts run.

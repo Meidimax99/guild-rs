@@ -172,3 +172,17 @@
 004f8810	gm_CharacterWealth	cash plus possessions of a character
 0046cc60	ai_IsLocalCharacter	process this character on this machine (network split)
 0046cd20	ai_IsLocalEmployee	same for employees of a character
+# --- command system and clock (see docs/architecture.md)
+004b2510	cm_ExecCommand	execute received network commands via table 0x635030 (sequence check, acks 0xf5d320)
+004b30c0	cm_RequestSetDate	command 0x1e with a date (single player: sent to itself)
+004b6c20	cm_ExSetDate	command 0x1e: set g_date if newer, run one simulation step
+004b5430	cm_ExSellObjekt
+004b8fd0	cm_ExGebUpgrade
+004ba000	cm_ExCreateGeb
+004b6d30	cm_ExSysMessage	command 0x20
+0041df70	nt_Recv	receive records from the server
+0041dc80	nt_Init	connect to the server (address 0 = offline single player)
+0051f960	clk_Advance	timer callback (every 71 ticks ≈ 1 s): local date += (speed*0.00625+0.5)*100 s
+00427aa0	timer_Tick	multimedia timer callback: run registered timers, g_tick++
+00427c60	timer_Register	(callback, interval in ticks)
+00427d00	timer_Pause	(callback, 1 = paused)

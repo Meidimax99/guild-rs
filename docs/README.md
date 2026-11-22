@@ -1,6 +1,8 @@
 # Documentation
 
 * [Repository structure](repository.md): crates, modules, tools, conventions.
+* [Game architecture](architecture.md): frame loop, command system, game
+  clock, client/server networking ([command table](commands.tsv)).
 * [Reverse-engineering progress](reverse-engineering.md): method, address map,
   per-subsystem status, decoded records, open questions, next steps.
 * [File formats](formats.md): byte layouts of every supported game file.

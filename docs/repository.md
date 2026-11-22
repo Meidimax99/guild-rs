@@ -116,6 +116,8 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 | [`reverse-engineering.md`](reverse-engineering.md) | progress, address map, decoded records, open questions |
 | [`formats.md`](formats.md) | file format reference |
 | [`savegame.md`](savegame.md) | savegame dynamic state, header, network games |
+| [`architecture.md`](architecture.md) | game architecture: frame loop, commands, clock, networking |
+| [`commands.tsv`](commands.tsv) | the 106 network command types with client and server handlers |
 | [`esc.md`](esc.md) | ESC language and interpreter |
 | [`esc_api.tsv`](esc_api.tsv) | the 129 script host functions with signatures |
 | `repository.md` | this file |
@@ -127,6 +129,8 @@ module doc comment; [`formats.md`](formats.md) is the prose overview.
 | `ghidra_scripts/ExportAll.java` | decompile all functions, dump strings with xrefs |
 | `ghidra_scripts/DecompileAt.java` | create + decompile functions at given addresses |
 | `ghidra_scripts/ApplyNames.java` | apply `names.tsv` to the Ghidra project |
+| `ghidra_scripts/FindFunctions.java` | create functions in code that auto-analysis missed |
+| `names_server.tsv` | identified functions in `server/server.dll` |
 | `decompile.sh` | reproduce the full decompiled source outside the repo (import, apply names, export, split by module) |
 | `names.tsv` | identified functions and globals (address, name, comment) |
 | `scripts/pe.py` | minimal PE reader (virtual address → bytes) |

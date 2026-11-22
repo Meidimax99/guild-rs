@@ -1,0 +1,29 @@
+# address	name	comment  — server/server.dll (image base 0x10000000)
+10008cc0	Init	export: start the server thread with the config block
+10008cf0	Exit	export: stop the server thread and wait
+10008d20	srv_Main	server thread: lobby, client setup, world distribution, game clock loop
+10009590	srv_OpenGamePath	game.ini [General] GamePath, open archives
+10009840	srv_Accept	accept new TCP connections
+10009a70	srv_CloseConnection
+10009ac0	srv_RecvRecord	read one framed record (3-byte header: type, u16 length)
+10009be0	srv_SendPending	write queued records to a socket
+10009ca0	srv_ProcessInput	per-connection state machine (handshake, lobby, upload, play)
+10009f70	srv_FlushOutput
+1000a000	srv_QueueInbound	append a record to a connection's inbound queue
+1000a0a0	srv_QueueOutbound	append a record to a connection's outbound queue
+1000a1b0	srv_ExecuteCommands	run server handlers (table 0x1002a530), echo and broadcast accepted commands
+10001130	srv_UdpAnnounce	broadcast the config block to UDP port 12345 (LAN discovery)
+1000c4b0	srv_cmd_Invalid	"Invalid Commandtype in Execution"
+1000e7e0	srv_cmd_Accept	default handler: accept and broadcast
+1000ca10	srv_cm_ExSellObjekt	validate a sale against the server's world
+1000e430	srv_cm_ExSetGebUpgrade	validate a building upgrade
+1000dee0	srv_cmd_SysMessage	sub 1 tick ack, 0x0e relay, 0x12 game speed
+10013880	lb_ExLobbyServerCommand	lobby commands (type 0x5f)
+10013370	lb_ExPlayerHasJoined
+10014020	date_Add	(date, hours, minutes, seconds)
+100140c0	date_SetTime
+100142f0	gm_LoadPrototypes	A_Geb.dat / A_Obj.dat
+100166c0	gm_KillSpieler
+10016f60	gm_CreateCharacter
+100111a0	ls_LoadGame	load the world the host uploaded (Savegame, ls:tmp)
+1002a528	g_srv_ms_per_minute	game minute length in ms (default 770; speed table 0x10024738: 1155 937 770 577 385)
