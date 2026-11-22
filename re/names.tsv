@@ -195,3 +195,10 @@
 00492e10	ai_ScoreAction	weighted drive values for an action (current activity counts more)
 0046c9d0	ai_Schedule	every game minute: visit 12.8 character slots (hourly update, AI decision)
 004ec460	date_MinutesBetween	whole minutes from a to b
+004787f0	chr_HourlyUpdate	employees with job flag: schedule repairs of worn objects (condition < 40..71) in the workplace
+0046c7d0	ai_Decide	staff own workshops (hire), choose (ai_ChooseAction) and run (FUN_00484150) an action; +0x132 = action
+00491f60	ai_ChooseAction	candidate targets from office holders with relationship scores, then action scoring
+004b2ef0	cm_RequestAddNotice	command 0x1c with a 0xf8-byte notice description (sent as blob)
+004b6940	cm_ExAddNotice	command 0x1c: create the notice (only for the local player's characters unless shared)
+004b2800	cm_SendBlob	send a payload larger than a record via commands 8/9
+004b4e10	cm_ExLoadBufSize	command 8: allocate the receive buffer (cm_LoadBuf)

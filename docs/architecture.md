@@ -96,7 +96,14 @@ shared state. 106 types (`0x00`–`0x69`), full table in
 | `+0x91`, `+0x95` | queue links (prev, next) |
 
 Types 5 and 6 bracket a transaction of several records that is executed
-together. The client keeps two record pools: 8192 received commands
+together. Payloads larger than a record travel as a blob: type 8 announces
+the size, type 9 carries 0x80-byte chunks into a receive buffer
+(`cm_LoadBuf`), and the command that follows uses it — the world upload
+works the same way. Notices are created through such a command (type
+`0x1c`, `cm_ExAddNotice`, 0xf8-byte notice description); its executor
+creates a notice for another human's character only if it is marked as
+shared, which is why every machine holds only its own player's message
+boxes. The client keeps two record pools: 8192 received commands
 (`0x9629a0`, followed by the sync and sequence counters `0xa949a0`) and
 0x8000 sent requests indexed by request id (`0xa95300`) with their
 acknowledgement slots (`0xf5d320`). All three are saved in the savegame
