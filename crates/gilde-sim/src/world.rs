@@ -99,9 +99,8 @@ impl World {
             return None;
         }
         self.date = date;
-        let mut report = StepReport::default();
         // msg_ProcessNotices.
-        report.notices_due = self.notices.process(&date);
+        let mut report = StepReport { notices_due: self.notices.process(&date), ..Default::default() };
         // chr_UpdateDrives: every character.
         for c in self.characters.iter_mut().flatten() {
             let ctx = c.drive_context();
