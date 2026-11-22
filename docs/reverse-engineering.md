@@ -204,6 +204,11 @@ register them) but not ported.
   the strongest becomes the current activity `+0x130` (`chr_UpdateDrives`).
   Saved values look as expected (rates ≈ 2–3, decays ≈ 0.0025, equilibrium
   ≈ 1000; employees have no drives). **Ported** (`gilde_sim::drives`).
+* **AI scheduling** (`ai_Schedule` `0x46c9d0`): 12.8 character slots per
+  game minute round-robin (each character once per game hour, 06:00–23:00);
+  hourly update `FUN_004787f0`; AI decision `FUN_0046c7d0` between 07:00 and
+  22:00 for AI dynasty heads every hour, others every second hour.
+  **Ported** (`gilde_sim::ai`). The decision itself is open.
 * **Session loop** (`game_Session`): start of game sets 06:00 and grants starting
   money ((5 − difficulty) × 250, cheat `MO_MONEY` 750 000); per round
   `FUN_00526790` (`RundenBeginn`: per-player round-start events) and

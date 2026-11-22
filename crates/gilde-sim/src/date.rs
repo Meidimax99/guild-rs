@@ -86,6 +86,12 @@ impl Date {
         })
     }
 
+    /// Whole minutes from `self` to `later` (`FUN_004ec460`; seconds are
+    /// ignored).
+    pub fn minutes_until(&self, later: &Date) -> i32 {
+        ((later.round - self.round) * 24 - self.hour as i32 + later.hour as i32) * 60 - self.minute + later.minute
+    }
+
     /// Set the time of day, keeping the round (`date_SetTime`).
     pub fn set_time(&mut self, hour: u16, minute: i32, second: i32) {
         self.hour = hour;

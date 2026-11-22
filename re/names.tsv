@@ -193,3 +193,5 @@
 004e7dd0	eco_MinuteStep	economy value at 0x71d06c follows elapsed time between 07:00 and 21:00
 004832e0	ai_LoadData	gamedata/ai/ai_data_2.dfn and other AI tables
 00492e10	ai_ScoreAction	weighted drive values for an action (current activity counts more)
+0046c9d0	ai_Schedule	every game minute: visit 12.8 character slots (hourly update, AI decision)
+004ec460	date_MinutesBetween	whole minutes from a to b

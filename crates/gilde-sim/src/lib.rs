@@ -1,6 +1,7 @@
 //! Game simulation (in progress): calendar, game clock, replicated commands
 //! and the authoritative server core.
 
+pub mod ai;
 pub mod clock;
 pub mod command;
 pub mod date;
